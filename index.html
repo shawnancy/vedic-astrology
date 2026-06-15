@@ -67,10 +67,11 @@ select{background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),
   font-size:10.5px;text-align:center;font-weight:700;vertical-align:1px}
 
 /* tabs */
-.tabbar{position:sticky;top:0;z-index:50;display:flex;gap:6px;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);
+.tabbar{position:sticky;top:0;z-index:50;display:flex;gap:6px;justify-content:safe center;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);
   padding:10px 0;margin-top:20px;border-bottom:1px solid var(--border);overflow-x:auto;-webkit-overflow-scrolling:touch}
-.tabbtn{flex-shrink:0;background:var(--card);border:1px solid var(--border);color:var(--text2);border-radius:999px;
+.tabbtn{flex-shrink:0;display:inline-flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--border);color:var(--text2);border-radius:999px;
   padding:8px 18px;cursor:pointer;font-size:14.5px;font-family:inherit;transition:all .15s}
+.tabbtn .ti{line-height:1}
 .tabbtn.on{background:linear-gradient(135deg,var(--brand),var(--brand-light));border-color:transparent;color:#fff;font-weight:600;
   box-shadow:0 4px 12px rgba(108,92,231,.3)}
 
@@ -164,6 +165,18 @@ tbody tr:hover td{background:var(--brand-bg)}
 .kuta-verdict b{color:var(--text)}
 .kuta-desc{display:none;font-size:13px;color:var(--muted);margin-top:8px;padding-top:8px;border-top:1px dashed var(--border)}
 .kuta.open .kuta-desc{display:block}
+/* 合盘升级: 区块标题 + 落宫/相位行 + 综合明细 */
+.match-breakdown{font-size:12px;opacity:.92;margin-top:8px;line-height:1.5}
+.syn-h{font-size:15.5px;font-weight:700;color:var(--text);margin:20px 0 10px;padding-left:10px;border-left:3px solid var(--brand)}
+.syn-h small{font-weight:400;font-size:12.5px;color:var(--muted)}
+.ov-row{display:flex;align-items:baseline;gap:8px;background:#fff;border:1px solid var(--border);border-radius:10px;padding:9px 12px;margin-bottom:7px;font-size:13.5px;color:var(--text2)}
+.ov-row .ov-pl{flex:0 0 auto;font-weight:700;color:var(--text);min-width:58px}
+.ov-row .ov-h{flex:0 0 auto;font-size:12.5px;color:var(--muted)}
+.ov-row .ov-j{flex:1}
+.ov-row.ov-good{border-left:3px solid var(--good)}
+.ov-row.ov-tense{border-left:3px solid var(--bad)}
+.ov-row.ov-neu{border-left:3px solid var(--border)}
+.ov-row .ov-j b{color:var(--text)}
 
 /* reading */
 .rsec{margin-top:18px}
@@ -304,7 +317,16 @@ footer p{margin-bottom:6px}
   .chart-flex{grid-template-columns:1fr}
   .card{padding:16px}
   .dt{font-size:12px}
-  .tabbtn{padding:7px 14px;font-size:13.5px}
+  /* 手机版: 导航变 App 底部固定切换栏 */
+  body{padding-bottom:calc(64px + env(safe-area-inset-bottom,0px))}
+  .tabbar{position:fixed;top:auto;bottom:0;left:0;right:0;z-index:60;margin:0;gap:2px;
+    justify-content:space-between;overflow-x:visible;padding:6px 4px calc(6px + env(safe-area-inset-bottom,0px));
+    border-top:1px solid var(--border);border-bottom:none;border-radius:16px 16px 0 0;box-shadow:0 -4px 18px rgba(31,32,40,.08)}
+  .tabbtn{flex:1 1 0;min-width:0;flex-direction:column;gap:1px;border:none;background:transparent;
+    padding:5px 1px;border-radius:12px;color:var(--muted)}
+  .tabbtn .ti{font-size:19px}
+  .tabbtn .tl{font-size:9.5px;letter-spacing:-.3px;white-space:nowrap}
+  .tabbtn.on{background:var(--brand-bg);color:var(--brand);box-shadow:none;font-weight:600}
 }
 </style>
 </head>
@@ -318,14 +340,14 @@ footer p{margin-bottom:6px}
 
   <!-- 主导航 (常驻) -->
   <nav class="tabbar" id="tabbar">
-    <button class="tabbtn on" data-tab="chart" onclick="_tab('chart')">🪔 星盘</button>
-    <button class="tabbtn" data-tab="ai" onclick="_tab('ai')">🤖 问AI</button>
-    <button class="tabbtn" data-tab="match" onclick="_tab('match')">💞 合盘</button>
-    <button class="tabbtn" data-tab="profile" onclick="_tab('profile')">👤 个人中心</button>
-    <button class="tabbtn" data-tab="daily" onclick="_tab('daily')">🌞 今日运势</button>
-    <button class="tabbtn" data-tab="fortune" onclick="_tab('fortune')">📈 个人运势</button>
-    <button class="tabbtn" data-tab="read" onclick="_tab('read')">📜 解读</button>
-    <button class="tabbtn" data-tab="dasha" onclick="_tab('dasha')">⏳ 大运</button>
+    <button class="tabbtn on" data-tab="chart" onclick="_tab('chart')"><span class="ti">🪔</span><span class="tl">星盘</span></button>
+    <button class="tabbtn" data-tab="ai" onclick="_tab('ai')"><span class="ti">🤖</span><span class="tl">问AI</span></button>
+    <button class="tabbtn" data-tab="match" onclick="_tab('match')"><span class="ti">💞</span><span class="tl">合盘</span></button>
+    <button class="tabbtn" data-tab="profile" onclick="_tab('profile')"><span class="ti">👤</span><span class="tl">个人中心</span></button>
+    <button class="tabbtn" data-tab="daily" onclick="_tab('daily')"><span class="ti">🌞</span><span class="tl">今日运势</span></button>
+    <button class="tabbtn" data-tab="fortune" onclick="_tab('fortune')"><span class="ti">📈</span><span class="tl">个人运势</span></button>
+    <button class="tabbtn" data-tab="read" onclick="_tab('read')"><span class="ti">📜</span><span class="tl">解读</span></button>
+    <button class="tabbtn" data-tab="dasha" onclick="_tab('dasha')"><span class="ti">⏳</span><span class="tl">大运</span></button>
   </nav>
 
   <!-- 星盘 (表单+结果) -->
@@ -435,7 +457,7 @@ footer p{margin-bottom:6px}
       <div class="nc-chips" id="matchNeedChips"></div>
     </div>
     <div class="card" id="matchCard" style="display:none">
-      <h3 style="margin-bottom:4px">💞 三十六分合盘 Ashtakoota</h3>
+      <h3 style="margin-bottom:4px">💞 多维合盘 Synastry</h3>
       <p class="muted" style="margin-bottom:14px">印占最经典的合婚法：以双方月亮星宿为核心，从精神、吸引、健康、亲密、心灵、性情、家庭、血脉八个维度打分（满分 36）。填入对方的出生信息：</p>
       <div id="matchProfPick" style="display:none"></div>
       <div class="fgrid">
@@ -1096,6 +1118,91 @@ return new kd(this.curr.time,a,b)};$jscomp.global.Object.defineProperties(H.prot
     return { isManglik: l || m, strong: l && m, fromLagna, fromMoon };
   }
 
+  /* ================= 合盘扩展: 补充合婚四项 (Rajju/Vedha/Mahendra/Stree-Deergha) ================= */
+  // Rajju 5 部位 (0=足 1=腰 2=腹 3=颈 4=头), 27 宿之字形映射 (AstroSage/ProKerala 标准表)
+  const RAJJU = [0,1,2,3,4,3,2,1,0,0,1,2,3,4,3,2,1,0,0,1,2,3,4,3,2,1,0];
+  // Vedha 互害宿对 (0-based), 双方月宿成对即犯 Vedha
+  const VEDHA_PAIRS = [[0,17],[1,16],[2,15],[3,14],[4,22],[5,21],[6,20],[7,19],[8,18],[9,26],[10,25],[11,24],[12,23]];
+  // boyMoon/girlMoon = 男/女方月亮黄经
+  function extraKutas(boyMoon, girlMoon) {
+    const b = nakOf(boyMoon).idx, g = nakOf(girlMoon).idx;
+    // Rajju: 同部位 = 犯 (按部位定凶应), 异部位 = 吉
+    const rb = RAJJU[b], rg = RAJJU[g], rSame = rb === rg;
+    // Vedha
+    const vBad = VEDHA_PAIRS.some(([x, y]) => (x === b && y === g) || (x === g && y === b));
+    // Mahendra: 男宿→女宿计数(含首尾), 落 4/7/10/13/16/19/22/25 为吉 (主子嗣与福泽)
+    const cnt = ((g - b + 27) % 27) + 1;
+    const mahendra = [4, 7, 10, 13, 16, 19, 22, 25].includes(cnt);
+    // Stree-Deergha: 男宿→女宿计数 > 9 为吉 (主女方福寿与婚姻长久)
+    const stree = cnt > 9;
+    return {
+      rajju: { same: rSame, ok: !rSame, body: rb, bodyG: rg },
+      vedha: { ok: !vBad },
+      mahendra: { ok: mahendra, count: cnt },
+      streeDeergha: { ok: stree, count: cnt },
+    };
+  }
+
+  /* ================= 合盘扩展: 星落他宫 (House Overlay / Bhava synastry) ================= */
+  // from 的九大行星落进 into 的宫位 (整宫制, 自 into 上升起算)
+  function overlayHouses(fromChart, intoChart) {
+    return PLANETS.map(p => {
+      const pl = fromChart.planets[p];
+      const house = ((pl.sign - intoChart.lagna.sign + 12) % 12) + 1;
+      return { planet: p, house, sign: pl.sign, signName: pl.signName, dignity: pl.dignity, retro: pl.retro };
+    });
+  }
+
+  /* ================= 合盘扩展: 行星跨盘相位 (Inter-chart Graha Drishti) ================= */
+  const SYN_PLANETS = ['Sun', 'Moon', 'Mars', 'Mercury', 'Jupiter', 'Venus', 'Saturn'];
+  // 行星 p 在某宿位是否相照前方 d 宫(0..11 的星座偏移, 0=合 6=对冲)
+  function specialAspect(p, d) {
+    if (p === 'Mars' && (d === 3 || d === 7)) return true;       // 火星 4/8 相
+    if (p === 'Jupiter' && (d === 4 || d === 8)) return true;    // 木星 5/9 相
+    if (p === 'Saturn' && (d === 2 || d === 9)) return true;     // 土星 3/10 相
+    return false;
+  }
+  function interAspects(A, B) {
+    const out = [];
+    for (const pa of SYN_PLANETS) {
+      for (const pb of SYN_PLANETS) {
+        const sa = A.planets[pa].sign, sb = B.planets[pb].sign;
+        const d = (sb - sa + 12) % 12;
+        // 合相/对冲 = 双向, 去重: 只在 pa 索引 <= pb 索引时记一次
+        if ((d === 0 || d === 6) && SYN_PLANETS.indexOf(pa) <= SYN_PLANETS.indexOf(pb))
+          out.push({ pa, pb, type: d === 0 ? 'conj' : 'opp', mutual: true });
+        // A 的行星特殊相照 B 的行星 (单向)
+        if (specialAspect(pa, d)) out.push({ pa, pb, type: 'sp', dir: 'AtoB' });
+        // B 的行星特殊相照 A 的行星 (单向)
+        if (specialAspect(pb, (sa - sb + 12) % 12)) out.push({ pa, pb, type: 'sp', dir: 'BtoA' });
+      }
+    }
+    return out;
+  }
+
+  /* ================= 合盘扩展: D9 婚盘 Navamsa (婚姻最深一层) ================= */
+  function d9Marriage(chart) {
+    const navSign = p => navamsaSign(chart.planets[p].lon);
+    const mk = p => { const ns = navSign(p); return { sign: ns, signName: SIGNS[ns], dignity: dignity(p, ns) }; };
+    const lagD9 = navamsaSign(chart.lagna.lon);
+    const lord7 = SIGN_LORD[(chart.lagna.sign + 6) % 12];
+    // Vargottama: D1 与 D9 同座 = 力量加倍
+    const varg = PLANETS.filter(p => chart.planets[p].sign === navSign(p));
+    const lagVarg = chart.lagna.sign === lagD9;
+    // Darakaraka 配偶之星 (Jaimini): 7 行星中星座内度数最小者 (罗计不计)
+    const CK = ['Sun', 'Moon', 'Mars', 'Mercury', 'Jupiter', 'Venus', 'Saturn'];
+    let dk = CK[0], dkDeg = chart.planets[dk].lon % 30;
+    for (const p of CK) { const dg = chart.planets[p].lon % 30; if (dg < dkDeg) { dkDeg = dg; dk = p; } }
+    const dkD9 = navamsaSign(chart.planets[dk].lon);
+    return {
+      lagnaD9: lagD9, lagnaD9Name: SIGNS[lagD9], lagnaVargottama: lagVarg,
+      venus: mk('Venus'), jupiter: mk('Jupiter'),
+      lord7, lord7D9: mk(lord7),
+      vargottama: varg,
+      darakaraka: dk, darakarakaD9: dkD9, darakarakaD9Name: SIGNS[dkD9],
+    };
+  }
+
   /* ================= 今日运势 (Tara Bala / Chandra Bala / Panchang) ================= */
   const TARA_NAMES = ['生宿 Janma','财宿 Sampat','危宿 Vipat','安宿 Kshema','障宿 Pratyak','成就宿 Sadhana','灭宿 Naidhana','友宿 Mitra','至友宿 Parama Mitra'];
   const TARA_QUALITY = [0, 2, -2, 2, -1, 2, -3, 2, 2]; // 相对分
@@ -1164,7 +1271,7 @@ return new kd(this.curr.time,a,b)};$jscomp.global.Object.defineProperties(H.prot
     };
   }
 
-  return { compute, transitsNow, daily, publicPanchang, ashtakoota, manglik, vashyaOf, ayanamsa, SIGNS, SIGNS_SA, NAKSHATRAS, PLANETS, PLANET_CN, PLANET_GLYPH, SIGN_LORD, DASHA_LORDS, DASHA_YEARS, norm360, signOf, nakOf, fmtDeg, YONI, YONI_CN, GANA, NADI, TARA_NAMES };
+  return { compute, transitsNow, daily, publicPanchang, ashtakoota, manglik, extraKutas, overlayHouses, interAspects, d9Marriage, vashyaOf, ayanamsa, SIGNS, SIGNS_SA, NAKSHATRAS, PLANETS, PLANET_CN, PLANET_GLYPH, SIGN_LORD, DASHA_LORDS, DASHA_YEARS, norm360, signOf, nakOf, fmtDeg, YONI, YONI_CN, GANA, NADI, TARA_NAMES };
 }));
 
 </script>
@@ -1324,7 +1431,7 @@ const KUTA_INFO = {
   Nadi: ['体质血脉 Nadi', '按星宿分三种"脉"（风/胆/痰），占 8 分、权重最大。不同脉=满分；同脉为 Nadi Dosha，传统上关系子嗣与健康，可由月亮星座主星互为朋友等条件化解，务必整盘合参。'],
 };
 const KUTA_VERDICT = [
-  [18, '低于 18 分：传统口径不建议仓促推进。但合盘只看月亮维度，强烈建议结合双方整盘（尤其金星、D9 盘）综合判断，真实关系永远大于分数。'],
+  [18, '低于 18 分：传统口径不建议仓促推进。但三十六分只看月亮维度，务必结合下方的落宫互动、跨盘相位与 D9 婚盘综合判断，真实关系永远大于分数。'],
   [25, '18–24 分：中等偏上，过了传统及格线。有需要磨合的具体课题（看低分项），用心经营完全可以白头。'],
   [33, '25–32 分：良配。月亮维度的契合度很高，日常相处舒服，低分项当成婚后注意事项即可。'],
   [37, '33–36 分：极佳，经典意义上的天作之合，得之珍惜。'],
@@ -1447,6 +1554,101 @@ const KUTA_REMEDY = {
   Bhakoot: '财务透明共管；健康互相督促体检作息',
   Nadi: '看化解条件（同月座不同宿/主星为友）；婚前坦诚聊生育规划',
 };
+
+/* ================================================================
+ * 合盘升级: 补充合婚四项 + 星落他宫 + 行星互相位 (超越月亮维度)
+ * ================================================================ */
+
+/* ---------- 补充合婚四项 (标准印占延伸合婚) ---------- */
+const RAJJU_BODY = [
+  ['足 Paada', '同足索：传统应在"奔波分离、聚少离多"，宜稳定居所、减少两地分居'],
+  ['腰 Kati', '同腰索：传统应在"财务拮据"，宜婚后共建储蓄、量入为出'],
+  ['腹 Udara', '同腹/脐索：传统应在"子嗣课题"，备孕规划多些耐心，整盘合参'],
+  ['颈 Kantha', '同颈索：被视为较重的一档，宜结合双方寿元宫(8宫)与整盘综合看，不必恐慌'],
+  ['头 Shiro', '同头索：传统视为最重一档，强烈建议结合整盘、D9 与现实相处综合判断，单项不下定论'],
+];
+const EXTRA_KUTA_INFO = {
+  rajju: ['绳结 Rajju', '把 27 星宿排成头—颈—腹—腰—足五段"绳索"，看双方月宿落在同一段还是不同段。不同段为吉（缘分牢固）；同段（Rajju Dosha）传统按所在部位提示要留意的生活面向，是补充四项里最受重视的一项。'],
+  vedha: ['互害 Vedha', '某些星宿两两"对穿相害"。双方月宿恰成相害对即犯 Vedha，传统提示关系里易有反复的阻碍与拉扯；不成对则此项无忧。'],
+  mahendra: ['福泽 Mahendra', '从男方星宿数到女方星宿，落在 4/7/10/13/16/19/22/25 这些位次为吉，主婚后福泽、子嗣与家宅兴旺。'],
+  streeDeergha: ['女方福寿 Stree-Deergha', '从男方星宿数到女方星宿，距离大于 9 为吉，主女方在这段婚姻里福寿绵长、被善待。距离越大越好。'],
+};
+
+/* ---------- 星落他宫 House Overlay (婚盘第二主线) ---------- */
+const SYN_HOUSE_DOMAIN = [
+  '身心与第一印象', '财务与亲密底气', '日常沟通与勇气', '安全感与家', '浪漫·子女·玩心',
+  '日常摩擦与付出', '婚姻与伴侣定位', '亲密深度与危机', '共同信念与远方', '事业支持与社会面子',
+  '收益·朋友圈·愿望', '消耗·私密·放下',
+];
+const SYN_BENEFIC = ['Jupiter', 'Venus', 'Moon', 'Mercury'];
+const SYN_PLANET_ENERGY = {
+  Sun: '自尊与主导', Moon: '情绪与照顾', Mars: '激情与冲劲', Mercury: '沟通与心思',
+  Jupiter: '祝福与扩张', Venus: '爱与愉悦', Saturn: '责任与重量', Rahu: '执念与放大', Ketu: '疏离与出离',
+};
+// 落宫吉凶判定: 返回 'good' | 'tense' | 'neutral'
+function overlayTone(planet, house) {
+  const benefic = SYN_BENEFIC.includes(planet);
+  if (benefic) return [1, 2, 4, 5, 7, 9, 10, 11].includes(house) ? 'good' : [6, 8, 12].includes(house) ? 'tense' : 'neutral';
+  // 凶星(土火日罗计): 落 1/4/7/8/12 添摩擦; 落 3/6/10/11 反而有力
+  if ([1, 4, 7, 8, 12].includes(house)) return 'tense';
+  if ([3, 6, 10, 11].includes(house)) return 'good';
+  return 'neutral';
+}
+// 落宫一句话判词
+function overlayLine(planet, house, fromName, toName) {
+  const energy = SYN_PLANET_ENERGY[planet] || '';
+  const domain = SYN_HOUSE_DOMAIN[house - 1];
+  const tone = overlayTone(planet, house);
+  const benefic = SYN_BENEFIC.includes(planet);
+  let judge;
+  if (tone === 'good') judge = benefic
+    ? `${fromName}把"${energy}"的好能量带进${toName}的「${domain}」，是这段关系里实打实的滋养。`
+    : `${fromName}的"${energy}"落在${toName}的有力位，化压力为推力——${toName}会觉得被推着成长。`;
+  else if (tone === 'tense') judge = benefic
+    ? `落在${toName}的消耗宫(${house}宫)，好心也可能用力过猛或被消耗，${fromName}付出要讲方法。`
+    : `${fromName}的"${energy}"压在${toName}的「${domain}」上，是这段关系的摩擦点：${house === 7 || house === 1 ? '直接作用于两人关系本身，约束感最强' : house === 8 || house === 12 ? '暗处的压力与不安全感，要靠坦诚化解' : '需要刻意留出缓冲'}。`;
+  else judge = `${fromName}的"${energy}"落在${toName}的「${domain}」，影响中性，看整体相处。`;
+  return { house, domain, tone, judge };
+}
+
+/* ---------- 行星跨盘相位主题 (按行星对) ---------- */
+// key = 排序后的 "A|B" 行星对; [主题, 吉性 good/intense/tense/comm]
+const SYN_PAIR_THEME = {
+  'Moon|Sun': ['日月相照·经典夫妻相', 'good', '一方的灵魂与另一方的心绪互相点亮，是最被看重的"天生一对"接触，过日子有默契。'],
+  'Moon|Moon': ['月月相照·情绪同频', 'good', '两人的情绪节奏与安全感来源直接对接，懂彼此的脾气，吵完也容易和好。'],
+  'Mars|Venus': ['金火相照·情欲吸引', 'intense', '激情与化学反应的经典指标，强烈相吸；好处是来电，要留意冲动期把握分寸。'],
+  'Venus|Venus': ['金星互照·审美与爱同调', 'good', '爱的方式、审美、对浪漫的期待天然对齐，约会与情趣上少费口舌。'],
+  'Jupiter|Venus': ['木金相照·恩慈相待', 'good', '一方用智慧与宽厚滋养另一方的情爱，关系里有种被祝福、被纵容的暖意。'],
+  'Jupiter|Moon': ['木月相照·情感被祝福', 'good', '一方像长辈般护着另一方的情绪，是安心、想结婚生子的稳定接触。'],
+  'Sun|Venus': ['日金相照·欣赏与被爱', 'good', '一方的光被另一方欣赏珍惜，自尊在关系里被温柔托住。'],
+  'Moon|Venus': ['月金相照·温柔体贴', 'good', '情绪与爱意互相照顾，日常相处有大量小确幸与体贴。'],
+  'Mars|Moon': ['火月相照·热烈也易冲', 'intense', '激情与情绪强连接，相处带劲；情绪上头时火气也旺，需立"吵架规则"。'],
+  'Saturn|Venus': ['土金相照·责任型的爱', 'tense', '一方给另一方的爱注入承诺与束缚——能很长久也很"沉"，要防变成义务感大于心动。'],
+  'Saturn|Moon': ['土月相照·沉重但负责', 'tense', '一方让另一方有依靠也有压抑，是"踏实却容易闷"的接触，多给情绪出口。'],
+  'Saturn|Sun': ['土日相照·权威与磨练', 'tense', '一方对另一方的自尊形成压制或考验，处理不好像上下级；摆平姿态就是助力。'],
+  'Mars|Mars': ['火火相照·并肩或对撞', 'intense', '两股行动力对接，一起干事很有劲，意见相左时也最容易硬碰硬。'],
+  'Saturn|Mars': ['土火相照·刹车配油门', 'tense', '一个想冲一个想稳，节奏天然打架，约定好"谁的领域听谁的"能转成互补。'],
+  'Mercury|Mercury': ['水水相照·聊得来', 'comm', '思维与表达频道一致，无话不谈，是日常沟通顺畅的硬指标。'],
+  'Mercury|Moon': ['水月相照·懂你心思', 'comm', '一方能用语言精准接住另一方的情绪，"被理解"的感受很强。'],
+  'Mercury|Venus': ['水金相照·甜言蜜语', 'comm', '沟通里自带情趣与浪漫，会说情话、会表达爱意。'],
+};
+const SYN_TONE_LABEL = { good: ['💚', '滋养'], intense: ['🔥', '激情'], tense: ['🪨', '课题'], comm: ['💬', '沟通'] };
+
+/* ---------- D9 婚盘: Darakaraka(配偶之星) 落 D9 星座 → 配偶画像 ---------- */
+const DK_SPOUSE = [
+  '配偶偏主动直率、有冲劲，是带着你往前冲的类型，偶尔急脾气。',          // 白羊
+  '配偶务实顾家、重感官享受与安稳，对物质与美食有讲究，认定了很忠诚。',  // 金牛
+  '配偶聪明健谈、点子多、social，相处不闷，但要的是有趣的灵魂。',        // 双子
+  '配偶顾家恋旧、情感丰沛、会照顾人，安全感是 TA 的核心需求。',          // 巨蟹
+  '配偶有气场、爱面子、重尊严，是关系里想被崇拜的"主角型"伴侣。',        // 狮子
+  '配偶细致挑剔、讲条理、爱付出实事，嘴上挑剔心里在乎。',                // 处女
+  '配偶有品味、重公平与和谐、外形耐看，是经典的"般配型"伴侣。',          // 天秤
+  '配偶深情专一、占有欲与情绪浓度高，要的是灵魂层面的深度绑定。',        // 天蝎
+  '配偶乐观爱自由、有信念感、爱学习或远行，给你成长空间也需要空间。',    // 射手
+  '配偶成熟可靠、有事业心、晚熟而长情，是越老越香、扛得住事的类型。',    // 摩羯
+  '配偶独立有想法、不按常理出牌、重精神共鸣，给足自由才稳得住。',        // 水瓶
+  '配偶温柔浪漫、感性有灵性、共情力强，吃软不吃硬，需要被温柔以待。',    // 双鱼
+];
 
 /* ---------- 今日运势详细库 ---------- */
 // 九宿位宜忌
@@ -2209,24 +2411,137 @@ const GITA_DAILY = [
     const manglikTxt = (m, who) => m.isManglik ? `${who}有火星瑕（Manglik${m.strong ? '·较强' : '·较弱'}，火星落 ${[m.fromLagna, m.fromMoon].join('/')}宫位）` : `${who}无火星瑕`;
     const manglikVerdict = mA.isManglik === mB.isManglik ? (mA.isManglik ? '双方都有火星瑕，传统认为互相抵消，反而无碍。' : '双方都无火星瑕，此项无忧。')
       : '一方有火星瑕——传统建议结合双方整盘细看（金星、第7宫主星状态），不必恐慌，但值得认真合参。';
+
+    /* ===== ② 补充合婚四项 ===== */
+    const ek = V.extraKutas(boy.planets.Moon.lon, girl.planets.Moon.lon);
+    const ekItems = [
+      ['rajju', ek.rajju.ok, ek.rajju.ok ? `双方落不同绳段（${RAJJU_BODY[ek.rajju.body][0]} × ${RAJJU_BODY[ek.rajju.bodyG][0]}），缘分牢固，此项为吉。` : RAJJU_BODY[ek.rajju.body][1] + '。'],
+      ['vedha', ek.vedha.ok, ek.vedha.ok ? '双方月宿不成相害对，无 Vedha 之忧。' : '双方月宿恰成相害对（Vedha Dosha）：关系里易有反复出现的阻碍，建议结合整盘看化解。'],
+      ['mahendra', ek.mahendra.ok, ek.mahendra.ok ? `星宿间距落在福泽位（第${ek.mahendra.count}位），主婚后家宅兴旺、子嗣有福。` : `星宿间距为第${ek.mahendra.count}位，未落 Mahendra 吉位——此项不加分但非凶，福泽靠后天经营。`],
+      ['streeDeergha', ek.streeDeergha.ok, ek.streeDeergha.ok ? `男方星宿数到女方为第${ek.streeDeergha.count}位（>9），主女方福寿绵长、被善待，此项为吉。` : `星宿间距仅第${ek.streeDeergha.count}位（≤9），Stree-Deergha 偏弱——传统提示男方多照护女方，靠用心补足。`],
+    ];
+    const ekOkCount = ekItems.filter(x => x[1]).length;
+    const extraHtml = ekItems.map(([key, ok, txt]) => {
+      const [title, desc] = EXTRA_KUTA_INFO[key];
+      return `<div class="kuta" onclick="this.classList.toggle('open')">
+        <div class="kuta-head"><b>${title}</b><span class="kuta-score s-${ok ? 'good' : 'low'}">${ok ? '吉' : '注意'}</span></div>
+        <p class="kuta-verdict">${txt}</p>
+        <p class="kuta-desc">${desc}<br><span class="muted-sm">▸ 点卡片可收起本说明</span></p></div>`;
+    }).join('');
+
+    /* ===== ③ 星落他宫 House Overlay ===== */
+    const renderOverlay = (rows, fromName, toName) => {
+      const lines = rows.map(r => ({ ...overlayLine(r.planet, r.house, fromName, toName), planet: r.planet }));
+      const notable = lines.filter(l => l.tone !== 'neutral');
+      const show = (notable.length ? notable : lines).sort((a, b) => (a.tone === 'good' ? -1 : 1) - (b.tone === 'good' ? -1 : 1));
+      const body = show.map(l =>
+        `<div class="ov-row ov-${l.tone}"><span class="ov-pl">${V.PLANET_GLYPH[l.planet]} ${V.PLANET_CN[l.planet]}</span><span class="ov-h">第${l.house}宫</span><span class="ov-j">${l.judge}</span></div>`
+      ).join('');
+      const neu = lines.length - notable.length;
+      return body + (notable.length && neu ? `<p class="muted-sm" style="margin-top:6px">另有 ${neu} 颗行星落点中性，影响较淡，略。</p>` : '');
+    };
+    const bIntoMe = V.overlayHouses(chartB, CHART);   // TA 的星 → 我的宫
+    const meIntoB = V.overlayHouses(CHART, chartB);   // 我的星 → TA 的宫
+    // 统计落宫吉/课题数 (两向)
+    let ovGood = 0, ovTense = 0;
+    bIntoMe.forEach(r => { const t = overlayTone(r.planet, r.house); if (t === 'good') ovGood++; else if (t === 'tense') ovTense++; });
+    meIntoB.forEach(r => { const t = overlayTone(r.planet, r.house); if (t === 'good') ovGood++; else if (t === 'tense') ovTense++; });
+
+    /* ===== ④ 行星跨盘相位 ===== */
+    const asp = V.interAspects(CHART, chartB);
+    const themeMap = {};
+    asp.forEach(a => {
+      const key = [a.pa, a.pb].sort().join('|');
+      const th = SYN_PAIR_THEME[key];
+      if (!th) return;
+      if (!themeMap[key]) themeMap[key] = { th, types: new Set() };
+      themeMap[key].types.add(a.type);
+    });
+    const aspThemes = Object.values(themeMap);
+    let aspPos = 0, aspTense = 0, aspIntense = 0;
+    const aspHtml = aspThemes.length ? aspThemes.map(({ th }) => {
+      const [title, tone, txt] = th;
+      const [icon, label] = SYN_TONE_LABEL[tone];
+      if (tone === 'good' || tone === 'comm') aspPos++; else if (tone === 'tense') aspTense++; else aspIntense++;
+      return `<div class="ov-row ov-${tone === 'good' || tone === 'comm' ? 'good' : tone === 'tense' ? 'tense' : 'neu'}">
+        <span class="ov-pl">${icon} ${label}</span><span class="ov-j"><b>${title}</b>：${txt}</span></div>`;
+    }).join('') : '<p class="muted-sm">双方关系核心行星（日月金火土水）之间没有形成明显的合相/对冲/特殊相照——关系张力偏温和，更多靠落宫与日常经营。</p>';
+
+    /* ===== ⑦ 多维综合契合度 (透明加权) ===== */
+    const gunaPct = res.total / 36;
+    const extraPct = ekOkCount / 4;
+    const overlayPct = (ovGood + 1) / (ovGood + ovTense + 2);
+    const aspectPct = (aspPos + 0.5 * aspIntense + 0.5) / (aspPos + aspTense + aspIntense + 1);
+    const overall = Math.round(100 * (0.5 * gunaPct + 0.2 * extraPct + 0.15 * overlayPct + 0.15 * aspectPct));
+    const overallWord = overall >= 80 ? '很高' : overall >= 65 ? '较高' : overall >= 50 ? '中等' : '偏低';
+
+    /* ===== ⑥ D9 婚盘 Navamsa ===== */
+    const d9A = V.d9Marriage(CHART), d9B = V.d9Marriage(chartB);
+    const dgTxt = d => d ? `（${d}）` : '';
+    const elem = s => s % 4; // 0火1土2风3水
+    const d9LagnaVerdict = d9A.lagnaD9 === d9B.lagnaD9
+      ? '双方 D9 上升同座，婚姻底层节奏高度一致，少有方向之争，是婚盘里很难得的同频。'
+      : elem(d9A.lagnaD9) === elem(d9B.lagnaD9)
+        ? '双方 D9 上升同属一类元素，婚后价值观与生活节奏天然和谐。'
+        : '双方 D9 上升元素不同，婚后需要在生活方式上多磨合，磨合好了反而互补。';
+    const vargNote = d9 => {
+      const all = d9.vargottama.map(p => V.PLANET_CN[p]);
+      return (d9.lagnaVargottama ? ['上升'] : []).concat(all).join('、') || '无';
+    };
+    const vargStable = d9 => d9.lagnaVargottama || d9.vargottama.some(p => ['Venus', 'Moon', 'Jupiter', d9.lord7].includes(p));
+    const dkLine = (d9, who) => `${who}的配偶之星是<b>${V.PLANET_CN[d9.darakaraka]}</b>（Jaimini Darakaraka），落 D9 ${d9.darakarakaD9Name}座 → ${DK_SPOUSE[d9.darakarakaD9]}`;
+    const d9Html = `
+      <div class="f-card">
+        <p>· <b>D9 上升对照</b>：${myName} 婚盘上升 ${d9A.lagnaD9Name}，${bName} 婚盘上升 ${d9B.lagnaD9Name}。${d9LagnaVerdict}</p>
+        <p>· <b>金星 D9（婚姻之乐）</b>：${myName} 金星入 ${d9A.venus.signName}${dgTxt(d9A.venus.dignity)}，${bName} 金星入 ${d9B.venus.signName}${dgTxt(d9B.venus.dignity)}。D9 金星入旺/入庙的一方，婚后更懂享受与经营感情；落陷者要刻意学习表达爱。</p>
+        <p>· <b>第7宫主 D9（婚姻宫主在婚盘）</b>：${myName} 的7宫主 ${V.PLANET_CN[d9A.lord7]} 落 D9 ${d9A.lord7D9.signName}${dgTxt(d9A.lord7D9.dignity)}，${bName} 的7宫主 ${V.PLANET_CN[d9B.lord7]} 落 D9 ${d9B.lord7D9.signName}${dgTxt(d9B.lord7D9.dignity)}。7宫主在 D9 入旺/庙=婚姻有底气，落陷=需更用心维系。</p>
+        <p>· <b>Vargottama（D1 与 D9 同座，力量加倍）</b>：${myName}：${vargNote(d9A)}；${bName}：${vargNote(d9B)}。${vargStable(d9A) || vargStable(d9B) ? '其中上升/金星/月亮/7宫主 vargottama 者，婚姻格外稳定扎实。' : '双方关键婚姻星暂无 vargottama，婚姻稳定度更靠后天经营。'}</p>
+        <p>· <b>配偶画像 Darakaraka</b>：${dkLine(d9A, myName)}；${dkLine(d9B, bName)}。两段画像若与对方真人对得上，是缘分的有趣印证。</p>
+        <p class="muted-sm">D9（Navamsa 九分盘）是印占看婚姻品质的核心分盘——D1 看相遇与吸引，D9 看婚后能否长久同心。以上为双方各自婚盘要点对照，深入可请命理师结合 D9 整盘细判。</p></div>`;
+
     $('matchResult').innerHTML = `
       <div class="match-hero">
         <div class="match-names">${myName} ❤ ${bName}</div>
-        <div class="match-score"><span>${res.total}</span>/36</div>
-        <div class="match-bar"><div style="width:${pct}%"></div></div>
-        <p class="match-verdict">${verdict}</p>
+        <div class="match-score"><span>${overall}</span><small style="font-size:18px">%</small></div>
+        <div class="match-bar"><div style="width:${overall}%"></div></div>
+        <p class="match-verdict">多维综合契合度 <b>${overallWord}</b>　·　经典合婚 ${res.total}/36（${pct}%）</p>
+        <div class="match-breakdown">经典合婚 ${res.total}/36 ｜ 补充四项 ${ekOkCount}/4 ｜ 落宫滋养 ${ovGood} 课题 ${ovTense} ｜ 相位 ${aspThemes.length} 条</div>
       </div>
       <div class="m-you" style="margin-bottom:12px">双方月亮：${myName} ${CHART.planets.Moon.signName}·${CHART.planets.Moon.nakName} ｜ ${bName} ${chartB.planets.Moon.signName}·${chartB.planets.Moon.nakName}</div>
+
+      <div class="syn-h">① 经典合婚 Guna Milan · 三十六分</div>
+      <p class="match-verdict" style="color:var(--text2);margin:0 0 8px">${verdict}</p>
       ${kutaRows}
-      <div class="f-card" style="margin-top:12px"><h4>📋 综合解读</h4>
-        <p><b>你们的优势：</b>${strong.length ? strong.join('、') + ' 得分扎实——这些是关系里"天生就顺"的部分，不用刻意经营也稳。' : '高分项不多，这段关系更依赖后天经营（见下方课题）。'}</p>
-        <p style="margin-top:6px"><b>需要经营的课题与化解：</b></p>${weakHtml}</div>
-      <div class="f-card"><h4>♂ 火星瑕 Manglik 对照</h4><p>${manglikTxt(mA, myName)}；${manglikTxt(mB, bName)}。</p><p>${manglikVerdict}</p></div>
-      <div class="f-card"><h4>🔭 整盘补充视角（超出月亮维度）</h4>
+
+      <div class="syn-h">② 补充合婚四项 <small>（标准印占延伸）</small></div>
+      ${extraHtml}
+
+      <div class="syn-h">③ 星落他宫 House Overlay <small>（超越月亮·用全盘行星）</small></div>
+      <div class="f-card"><h4>${bName} 的星 → 落进 ${myName} 的宫位</h4>${renderOverlay(bIntoMe, bName, myName)}</div>
+      <div class="f-card"><h4>${myName} 的星 → 落进 ${bName} 的宫位</h4>${renderOverlay(meIntoB, myName, bName)}</div>
+      <p class="muted-sm">落宫合盘看的是"对方的能量进入你的哪块人生地盘"——这是真正超越月亮维度、最个性化的一层，吉星落 1/5/7/11 宫最旺关系。</p>
+
+      <div class="syn-h">④ 行星跨盘相位 <small>（关系张力与化学反应）</small></div>
+      ${aspHtml}
+
+      <div class="syn-h">⑤ 关系之星 <small>（金星 · 第7宫主）</small></div>
+      <div class="f-card">
         <p>· <b>金星（婚姻质量之星）</b>：${myName} 金星在${a7.venus.signName}${a7.venus.dignity ? '（' + a7.venus.dignity + '）' : ''}，${bName} 金星在${b7.venus.signName}${b7.venus.dignity ? '（' + b7.venus.dignity + '）' : ''}。金星入旺/入庙的一方在感情里更懂付出与享受。</p>
-        <p>· <b>第7宫主星（婚姻宫）</b>：${myName} 的7宫主${V.PLANET_CN[a7.lord7]}落第${a7.lord7House}宫，${bName} 的7宫主${V.PLANET_CN[b7.lord7]}落第${b7.lord7House}宫——7宫主落 1/4/5/7/9/10/11 宫为婚姻助力位。</p>
-        <p class="muted-sm">三十六分只看月亮维度，金星与第7宫是另两条主线，深入可看双方 D9 盘。</p></div>
-      <p class="muted-sm">Ashtakoota 三十六分合婚是印占最经典的合盘法。Yoni/Vashya 中间档按中性口径计分。分数是参考，整盘与真实相处永远优先。</p>`;
+        <p>· <b>第7宫主星（婚姻宫）</b>：${myName} 的7宫主${V.PLANET_CN[a7.lord7]}落第${a7.lord7House}宫，${bName} 的7宫主${V.PLANET_CN[b7.lord7]}落第${b7.lord7House}宫——7宫主落 1/4/5/7/9/10/11 宫为婚姻助力位。</p></div>
+
+      <div class="syn-h">⑥ D9 婚盘 Navamsa <small>（印占看婚姻品质最核心的分盘）</small></div>
+      ${d9Html}
+
+      <div class="syn-h">⑦ 火星瑕 Manglik 对照</div>
+      <div class="f-card"><p>${manglikTxt(mA, myName)}；${manglikTxt(mB, bName)}。</p><p>${manglikVerdict}</p></div>
+
+      <div class="syn-h">⑧ 综合解读</div>
+      <div class="f-card">
+        <p><b>你们的优势：</b>${strong.length ? strong.join('、') + ' 得分扎实，' : ''}${ovGood >= ovTense ? '落宫层面对方带来的滋养多于摩擦，' : ''}这些是关系里"天生就顺"、不用刻意经营也稳的部分。</p>
+        <p style="margin-top:6px"><b>需要经营的课题与化解：</b></p>${weakHtml}
+        ${ovTense > ovGood ? `<p style="margin-top:6px">· <b>落宫摩擦偏多</b>：对方的能量较多落在你的约束/消耗宫，相处需要更多空间与坦诚，别把"在意"做成"控制"。</p>` : ''}</div>
+
+      <p class="muted-sm">本合盘 = 经典三十六分（月亮维度）+ 补充四项 + 星落他宫（全盘行星）+ 跨盘相位 四层合参。综合契合度为各维度透明加权，仅作参考；真实相处永远大于分数，深入可再看双方 D9 婚盘。</p>`;
     $('matchResult').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
