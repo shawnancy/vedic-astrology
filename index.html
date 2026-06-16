@@ -110,6 +110,18 @@ select{background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),
 .chart-help b{color:var(--brand)}
 .chart-help p{margin-bottom:8px}
 
+/* ashtakavarga 八分力 */
+.av-row{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.av-h{flex:0 0 auto;width:120px;color:var(--text2);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.av-track{flex:1;height:14px;background:#eef0f5;border-radius:7px;overflow:hidden}
+.av-fill{display:block;height:100%;border-radius:7px;transition:width .3s}
+.av-n{flex:0 0 auto;width:26px;text-align:right;font-weight:700;font-size:13px;color:var(--text)}
+.av-grid{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-top:8px}
+.av-grid table{width:100%;border-collapse:collapse;font-size:12px;min-width:480px}
+.av-grid th,.av-grid td{padding:4px 6px;text-align:center;border-bottom:1px solid #eef0f5;white-space:nowrap}
+.av-grid th{color:var(--muted);font-weight:500}
+@media (max-width:520px){.av-h{width:84px;font-size:11.5px}}
+
 /* table */
 .tblwrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
 table{width:100%;border-collapse:collapse;font-size:14px;min-width:560px}
@@ -443,6 +455,7 @@ footer p{margin-bottom:6px}
         </div>
       </div>
       <div class="card tblwrap" id="ptable"></div>
+      <div class="card" id="avBox"></div>
 
       <div class="share-row">
         <button class="btn-sub" onclick="_copyLink(this)" data-en="Copy chart link">复制本盘链接</button>
@@ -1435,7 +1448,37 @@ return new kd(this.curr.time,a,b)};$jscomp.global.Object.defineProperties(H.prot
     };
   }
 
-  return { compute, transitsNow, daily, publicPanchang, ashtakoota, manglik, extraKutas, overlayHouses, interAspects, d9Marriage, vashyaOf, ayanamsa, vargaSign, navamsaSign, SIGNS, SIGNS_SA, NAKSHATRAS, PLANETS, PLANET_CN, PLANET_GLYPH, SIGN_LORD, DASHA_LORDS, DASHA_YEARS, norm360, signOf, nakOf, fmtDeg, YONI, YONI_CN, GANA, NADI, TARA_NAMES };
+  /* ================= Ashtakavarga (八分力) — BPHS Ch.66 受益点表 =================
+   * 表源 kunjara/jyotish (引 Parashara). 校验: 各行星 BAV 总和 48/49/39/54/56/52/39, SAV 总=337.
+   */
+  const AV_BINDU = {
+    Sun:     { Sun: [1,2,4,7,8,9,10,11], Moon: [3,6,10,11], Mars: [1,2,4,7,8,9,10,11], Mercury: [3,5,6,9,10,11,12], Jupiter: [5,6,9,11], Venus: [6,7,12], Saturn: [1,2,4,7,8,9,10,11], Lagna: [3,4,6,10,11,12] },
+    Moon:    { Sun: [3,6,7,8,10,11], Moon: [1,3,6,7,9,10,11], Mars: [2,3,5,6,10,11], Mercury: [1,3,4,5,7,8,10,11], Jupiter: [1,2,4,7,8,10,11], Venus: [3,4,5,7,9,10,11], Saturn: [3,5,6,11], Lagna: [3,6,10,11] },
+    Mars:    { Sun: [3,5,6,10,11], Moon: [3,6,11], Mars: [1,2,4,7,8,10,11], Mercury: [3,5,6,11], Jupiter: [6,10,11,12], Venus: [6,8,11,12], Saturn: [1,4,7,8,9,10,11], Lagna: [1,3,6,10,11] },
+    Mercury: { Sun: [5,6,9,11,12], Moon: [2,4,6,8,10,11], Mars: [1,2,4,7,8,9,10,11], Mercury: [1,3,5,6,9,10,11,12], Jupiter: [6,8,11,12], Venus: [1,2,3,4,5,8,9,11], Saturn: [1,2,4,7,8,9,10,11], Lagna: [1,2,4,6,8,10,11] },
+    Jupiter: { Sun: [1,2,3,4,7,8,9,10,11], Moon: [2,5,7,9,11], Mars: [1,2,4,7,8,10,11], Mercury: [1,2,4,5,6,9,10,11], Jupiter: [1,2,3,4,7,8,10,11], Venus: [2,5,6,9,10,11], Saturn: [3,5,6,12], Lagna: [1,2,4,5,6,7,9,10,11] },
+    Venus:   { Sun: [8,11,12], Moon: [1,2,3,4,5,8,9,11,12], Mars: [3,4,6,9,11,12], Mercury: [3,5,6,9,11], Jupiter: [5,8,9,10,11], Venus: [1,2,3,4,5,8,9,10,11], Saturn: [3,4,5,8,9,10,11], Lagna: [1,2,3,4,5,8,9,11] },
+    Saturn:  { Sun: [1,2,4,7,8,10,11], Moon: [3,6,11], Mars: [3,5,6,10,11,12], Mercury: [6,8,9,10,11,12], Jupiter: [5,6,11,12], Venus: [6,11,12], Saturn: [3,5,6,11], Lagna: [1,3,4,6,10,11] },
+  };
+  const AV_REFS = ['Sun', 'Moon', 'Mars', 'Mercury', 'Jupiter', 'Venus', 'Saturn', 'Lagna'];
+  const AV_PLANETS = ['Sun', 'Moon', 'Mars', 'Mercury', 'Jupiter', 'Venus', 'Saturn'];
+  function ashtakavarga(chart) {
+    const refSign = c => c === 'Lagna' ? chart.lagna.sign : chart.planets[c].sign;
+    const bav = {};
+    for (const P of AV_PLANETS) {
+      const row = new Array(12).fill(0);
+      for (const C of AV_REFS) {
+        const cs = refSign(C), tbl = AV_BINDU[P][C];
+        for (let s = 0; s < 12; s++) if (tbl.includes(((s - cs + 12) % 12) + 1)) row[s]++;
+      }
+      bav[P] = row;
+    }
+    const sav = new Array(12).fill(0);
+    for (const P of AV_PLANETS) for (let s = 0; s < 12; s++) sav[s] += bav[P][s];
+    return { bav, sav, savTotal: sav.reduce((a, b) => a + b, 0), planets: AV_PLANETS };
+  }
+
+  return { compute, transitsNow, daily, publicPanchang, ashtakoota, manglik, extraKutas, overlayHouses, interAspects, d9Marriage, vashyaOf, ayanamsa, vargaSign, navamsaSign, ashtakavarga, SIGNS, SIGNS_SA, NAKSHATRAS, PLANETS, PLANET_CN, PLANET_GLYPH, SIGN_LORD, DASHA_LORDS, DASHA_YEARS, norm360, signOf, nakOf, fmtDeg, YONI, YONI_CN, GANA, NADI, TARA_NAMES };
 }));
 
 </script>
@@ -2720,7 +2763,7 @@ const WORLD_CITIES=[["Shanghai","CN",31.2222,121.4581,0],["Beijing","CN",39.9075
 
   /* ---------- 总渲染 ---------- */
   function renderAll() {
-    renderOverview(); renderChart(); renderTable(); renderDasha(); renderReading(); renderFortune(); renderDaily(); aiInit(); renderSky();
+    renderOverview(); renderChart(); renderTable(); renderAV(); renderDasha(); renderReading(); renderFortune(); renderDaily(); aiInit(); renderSky();
     $('matchResult').innerHTML = ''; // 换人重测时清空旧合盘
   }
 
@@ -2830,6 +2873,36 @@ const WORLD_CITIES=[["Shanghai","CN",31.2222,121.4581,0],["Beijing","CN",39.9075
     $('ptable').innerHTML = `<table><thead><tr><th>${L('星体', 'Planet')}</th><th>${L('星座', 'Sign')}</th><th>${L('度数', 'Degree')}</th><th>${L('宫位', 'House')}</th><th>${L('星宿', 'Nakshatra')}</th><th>${L('状态', 'State')}</th></tr></thead><tbody>
       <tr onclick="_concept('lagna')"><td>${L('Asc 上升', 'Asc')} <span class="qmark">?</span></td><td>${c.lagna.signName}</td><td>${c.lagna.deg}</td><td>${L('第1宫', 'House 1')}</td><td class="td-nak">${c.lagna.nakName}</td><td>—</td></tr>${rows}</tbody></table>
       <p class="muted-sm" style="margin-top:8px">${L('点击任意一行，看这颗星在你盘里的完整介绍。', 'Tap any row for the full reading of that planet in your chart.')}</p>`;
+  }
+
+  /* ---------- 八分力 Ashtakavarga ---------- */
+  function renderAV() {
+    const box = $('avBox');
+    if (!box || !CHART) return;
+    const c = CHART, av = V.ashtakavarga(c);
+    const hs = h => (c.lagna.sign + h - 1) % 12;
+    const kw = h => (HOUSE_THEME[h - 1].split('·')[1] || '').split('/')[0];
+    const nameH = h => L(`第${h}宫（${kw(h)}）`, `House ${h} (${kw(h)})`);
+    let bars = '';
+    for (let h = 1; h <= 12; h++) {
+      const v = av.sav[hs(h)];
+      const col = v >= 30 ? 'var(--good)' : v >= 25 ? 'var(--brand)' : 'var(--bad)';
+      bars += `<div class="av-row"><span class="av-h">${L(`第${h}宫`, `H${h}`)} ${kw(h)}</span><span class="av-track"><span class="av-fill" style="width:${Math.min(100, Math.round(v / 40 * 100))}%;background:${col}"></span></span><span class="av-n">${v}</span></div>`;
+    }
+    const order = Array.from({ length: 12 }, (_, i) => i + 1).sort((a, b) => av.sav[hs(b)] - av.sav[hs(a)]);
+    const top = order.slice(0, 2), low = order.slice(-2);
+    let grid = `<table><thead><tr><th>${L('行星·宫', 'Planet · House')}</th>`;
+    for (let h = 1; h <= 12; h++) grid += `<th>${h}</th>`;
+    grid += `</tr></thead><tbody>`;
+    for (const p of av.planets) { grid += `<tr><td>${V.PLANET_GLYPH[p]} ${V.PLANET_CN[p]}</td>`; for (let h = 1; h <= 12; h++) grid += `<td>${av.bav[p][hs(h)]}</td>`; grid += '</tr>'; }
+    grid += `<tr style="font-weight:700;color:var(--brand)"><td>SAV</td>`; for (let h = 1; h <= 12; h++) grid += `<td>${av.sav[hs(h)]}</td>`; grid += '</tr></tbody></table>';
+    box.innerHTML = `
+      <h3 style="margin-bottom:4px">${L('🔢 八分力 Ashtakavarga', '🔢 Ashtakavarga')}</h3>
+      <p class="muted-sm" style="margin-bottom:10px">${L('印占独有的"宫位打分系统"——每个宫位算出一个 Sarvashtakavarga 分（12 宫共 337 分）。分越高=这块人生领域天生越有支撑。', 'A uniquely Vedic "house scoring" system — each house gets a Sarvashtakavarga score (totaling 337 across all 12). The higher the score, the more innate support that area of life carries.')}</p>
+      ${bars}
+      <p class="muted" style="margin-top:10px">${L(`💪 最被支撑：${nameH(top[0])}、${nameH(top[1])}；需后天多用力：${nameH(low[0])}、${nameH(low[1])}。`, `💪 Best supported: ${nameH(top[0])}, ${nameH(top[1])}; needs the most effort: ${nameH(low[0])}, ${nameH(low[1])}.`)}</p>
+      <p class="muted-sm" style="margin-top:6px">${L('口径：单宫 ≥30 强、25–29 中等、<25 偏弱；当吉星行运经过高分宫，好事兑现得更足。', 'Rule of thumb: a house scoring ≥30 is strong, 25–29 average, <25 weaker. When a benefic transits a high-scoring house, good results land more fully.')}</p>
+      <details style="margin-top:10px"><summary class="muted-sm" style="cursor:pointer">${L('▸ 展开七政逐宫明细（Bhinnashtakavarga）', '▸ Show each planet’s Bhinnashtakavarga')}</summary><div class="av-grid">${grid}</div></details>`;
   }
 
   /* ---------- 大运 ---------- */
