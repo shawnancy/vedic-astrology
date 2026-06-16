@@ -94,6 +94,7 @@ select{background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),
 .tabbtn{flex-shrink:0;display:inline-flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--border);color:var(--text2);border-radius:999px;
   padding:8px 18px;cursor:pointer;font-size:14.5px;font-family:inherit;transition:all .15s}
 .tabbtn .ti{line-height:1}
+.tl-short{display:none}
 .tabbtn.on{background:linear-gradient(135deg,var(--brand),var(--brand-light));border-color:transparent;color:#fff;font-weight:600;
   box-shadow:0 4px 12px rgba(108,92,231,.3)}
 
@@ -162,6 +163,17 @@ tbody tr:hover td{background:var(--brand-bg)}
 .antar-cur{color:var(--brand);font-weight:600}
 .antar b{color:var(--brand);font-weight:600}
 .antar-intro{font-size:13px;color:var(--text2);padding:8px 0 4px;border-bottom:1px dashed var(--border);margin-bottom:4px}
+.antar-wrap{border-radius:8px}
+.antar-wrap.antar-cur{background:var(--brand-bg)}
+.antar-head{cursor:pointer;align-items:center}
+.antar-head .parrow{margin-left:6px;color:var(--muted);font-size:11px;transition:transform .2s}
+.antar-wrap.open .antar-head .parrow{transform:rotate(90deg)}
+.prats{display:none;padding:2px 0 6px 14px;border-left:2px solid var(--border);margin:0 0 4px 4px}
+.antar-wrap.open .prats{display:block}
+.prat{display:flex;gap:8px;font-size:12.5px;padding:2px 0;color:var(--muted)}
+.prat span{margin-left:auto}
+.prat-cur{color:var(--brand);font-weight:600}
+.prat-cur b{color:var(--brand)}
 
 /* fortune & daily */
 .f-card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:10px}
@@ -366,6 +378,7 @@ footer p{margin-bottom:6px}
     padding:5px 1px;border-radius:12px;color:var(--muted)}
   .tabbtn .ti{font-size:19px}
   .tabbtn .tl{font-size:9.5px;letter-spacing:-.3px;white-space:nowrap}
+  .tl-full{display:none}.tl-short{display:inline}
   .tabbtn.on{background:var(--brand-bg);color:var(--brand);box-shadow:none;font-weight:600}
 }
 </style>
@@ -382,15 +395,15 @@ footer p{margin-bottom:6px}
 
   <!-- 主导航 (常驻) -->
   <nav class="tabbar" id="tabbar">
-    <button class="tabbtn on" data-tab="chart" onclick="_tab('chart')"><span class="ti">🪔</span><span class="tl" data-en="Chart">星盘</span></button>
-    <button class="tabbtn" data-tab="ai" onclick="_tab('ai')"><span class="ti">🤖</span><span class="tl" data-en="Ask AI">问AI</span></button>
-    <button class="tabbtn" data-tab="match" onclick="_tab('match')"><span class="ti">💞</span><span class="tl" data-en="Synastry">合盘</span></button>
-    <button class="tabbtn" data-tab="profile" onclick="_tab('profile')"><span class="ti">👤</span><span class="tl" data-en="Profiles">个人中心</span></button>
-    <button class="tabbtn" data-tab="daily" onclick="_tab('daily')"><span class="ti">🌞</span><span class="tl" data-en="Today">今日运势</span></button>
-    <button class="tabbtn" data-tab="fortune" onclick="_tab('fortune')"><span class="ti">📈</span><span class="tl" data-en="Fortune">个人运势</span></button>
-    <button class="tabbtn" data-tab="read" onclick="_tab('read')"><span class="ti">📜</span><span class="tl" data-en="Reading">解读</span></button>
-    <button class="tabbtn" data-tab="dasha" onclick="_tab('dasha')"><span class="ti">⏳</span><span class="tl" data-en="Dasha">大运</span></button>
-    <button class="tabbtn" data-tab="bala" onclick="_tab('bala')"><span class="ti">💪</span><span class="tl" data-en="Strength">力量</span></button>
+    <button class="tabbtn on" data-tab="chart" onclick="_tab('chart')"><span class="ti">🪔</span><span class="tl"><span class="tl-full" data-en="Chart">星盘</span><span class="tl-short" data-en="Chart">星盘</span></span></button>
+    <button class="tabbtn" data-tab="ai" onclick="_tab('ai')"><span class="ti">🤖</span><span class="tl"><span class="tl-full" data-en="Ask AI">问AI</span><span class="tl-short" data-en="AI">问AI</span></span></button>
+    <button class="tabbtn" data-tab="match" onclick="_tab('match')"><span class="ti">💞</span><span class="tl"><span class="tl-full" data-en="Synastry">合盘</span><span class="tl-short" data-en="Match">合盘</span></span></button>
+    <button class="tabbtn" data-tab="profile" onclick="_tab('profile')"><span class="ti">👤</span><span class="tl"><span class="tl-full" data-en="Profiles">个人中心</span><span class="tl-short" data-en="Saved">档案</span></span></button>
+    <button class="tabbtn" data-tab="daily" onclick="_tab('daily')"><span class="ti">🌞</span><span class="tl"><span class="tl-full" data-en="Today">今日运势</span><span class="tl-short" data-en="Today">今日</span></span></button>
+    <button class="tabbtn" data-tab="fortune" onclick="_tab('fortune')"><span class="ti">📈</span><span class="tl"><span class="tl-full" data-en="Fortune">个人运势</span><span class="tl-short" data-en="Trend">运势</span></span></button>
+    <button class="tabbtn" data-tab="read" onclick="_tab('read')"><span class="ti">📜</span><span class="tl"><span class="tl-full" data-en="Reading">解读</span><span class="tl-short" data-en="Read">解读</span></span></button>
+    <button class="tabbtn" data-tab="dasha" onclick="_tab('dasha')"><span class="ti">⏳</span><span class="tl"><span class="tl-full" data-en="Dasha">大运</span><span class="tl-short" data-en="Dasha">大运</span></span></button>
+    <button class="tabbtn" data-tab="bala" onclick="_tab('bala')"><span class="ti">💪</span><span class="tl"><span class="tl-full" data-en="Strength">力量</span><span class="tl-short" data-en="Bala">力量</span></span></button>
   </nav>
 
   <!-- 星盘 (表单+结果) -->
@@ -1202,7 +1215,14 @@ return new kd(this.curr.time,a,b)};$jscomp.global.Object.defineProperties(H.prot
       for (let j = 0; j < 9; j++) {
         const alord = DASHA_LORDS[(startIdx + i + j) % 9];
         const adur = years * DASHA_YEARS[alord] / 120 * YEAR_DAYS * 86400000;
-        antars.push({ lord: alord, start: at, end: at + adur });
+        // pratyantar (第三层): 子限再按 Vimshottari 比例切9段, 自子限主星起循环
+        const prats = []; let pt = at;
+        for (let k = 0; k < 9; k++) {
+          const plord = DASHA_LORDS[(startIdx + i + j + k) % 9];
+          const pdur = adur * DASHA_YEARS[plord] / 120;
+          prats.push({ lord: plord, start: pt, end: pt + pdur }); pt += pdur;
+        }
+        antars.push({ lord: alord, start: at, end: at + adur, prats });
         at += adur;
       }
       dashas.push({ lord, start, end, antars });
@@ -1239,7 +1259,13 @@ return new kd(this.curr.time,a,b)};$jscomp.global.Object.defineProperties(H.prot
       for (let j = 0; j < order.length; j++) {
         const al = order[(si + i + j) % order.length];
         const adur = (equalAntar ? yr / order.length : yr * years[al] / totalYears) * SID_YEAR * 86400000;
-        antars.push({ lord: al, start: at, end: at + adur });
+        const prats = []; let pt = at;
+        for (let k = 0; k < order.length; k++) {
+          const pl = order[(si + i + j + k) % order.length];
+          const pdur = (equalAntar ? adur / order.length : adur * years[pl] / totalYears);
+          prats.push({ lord: pl, start: pt, end: pt + pdur }); pt += pdur;
+        }
+        antars.push({ lord: al, start: at, end: at + adur, prats });
         at += adur;
       }
       dashas.push({ lord, start, end, antars });
@@ -3709,7 +3735,7 @@ const WORLD_CITIES=[["Shanghai","CN",31.2222,121.4581,0],["Beijing","CN",39.9075
   const dashaSetOf = sys => sys === 'yog' ? V.yoginiDasha(CHART.planets.Moon.lon, CHART.birthMs)
     : sys === 'asht' ? V.ashtottariDasha(CHART.planets.Moon.lon, CHART.birthMs) : CHART.dasha;
   const yrsOf = d => Math.round((d.end - d.start) / (365.25 * 86400000));
-  const findCur = set => { const now = Date.now(); for (const d of set.dashas) if (now >= d.start && now < d.end) for (const a of d.antars) if (now >= a.start && now < a.end) return { maha: d, antar: a }; return null; };
+  const findCur = set => { const now = Date.now(); for (const d of set.dashas) if (now >= d.start && now < d.end) for (const a of d.antars) if (now >= a.start && now < a.end) { let prat = null; for (const pr of (a.prats || [])) if (now >= pr.start && now < pr.end) { prat = pr; break; } return { maha: d, antar: a, prat }; } return null; };
   // 一段 maha 的标题与简介(按系统)
   function mahaLabel(d) {
     if (dashaSys === 'yog') { const yi = YOGINI_INFO[d.lord]; return `${yi[0]} (${V.PLANET_CN[d.lord]})`; }
@@ -3729,23 +3755,31 @@ const WORLD_CITIES=[["Shanghai","CN",31.2222,121.4581,0],["Beijing","CN",39.9075
     $('dashaSysNote').textContent = dashaSys === 'vim' ? L('Vimshottari（120年）：印占主用大运，最常看。', 'Vimshottari (120 yrs): the primary, most-used dasha system.')
       : dashaSys === 'asht' ? L('Ashtottari（108年，8星无计都）：第二意见，对罗睺权重不同，用来交叉印证 timing。', 'Ashtottari (108 yrs, 8 planets without Ketu): a second opinion that weights Rahu differently — used to cross-confirm timing.')
         : L('Yogini（36年，8女神）：周期短、近期判断更细，每段自带吉凶（Siddha/Dhanya/Bhadrika吉，Sankata/Ulka凶）。', 'Yogini (36 yrs, 8 goddesses): short cycle, finer for near-term reads; each period carries its own auspicious/inauspicious nature.');
+    const nm = lord => dashaSys === 'yog' ? YOGINI_INFO[lord][0] : V.PLANET_CN[lord];
     $('dashaList').innerHTML = set.dashas.map(d => {
       const cur = now >= d.start && now < d.end, past = now >= d.end;
       const ygBad = dashaSys === 'yog' && !V.YOGINI_GOOD[d.lord];
+      const ml = nm(d.lord);
       const antars = d.antars.map(a => {
         const acur = now >= a.start && now < a.end;
-        const al = dashaSys === 'yog' ? YOGINI_INFO[a.lord][0] : V.PLANET_CN[a.lord];
-        const ml = dashaSys === 'yog' ? YOGINI_INFO[d.lord][0] : V.PLANET_CN[d.lord];
-        return `<div class="antar ${acur ? 'antar-cur' : ''}">${ml}/${al} <span>${fmtD(a.start)} – ${fmtD(a.end)}</span>${acur ? L('<b>← 现在</b>', '<b>← now</b>') : ''}</div>`;
+        const prats = (a.prats || []).map(pr => {
+          const pc = now >= pr.start && now < pr.end;
+          return `<div class="prat ${pc ? 'prat-cur' : ''}">${ml}/${nm(a.lord)}/${nm(pr.lord)} <span>${fmtD(pr.start)} – ${fmtD(pr.end)}</span>${pc ? L('<b>← 现在</b>', '<b>← now</b>') : ''}</div>`;
+        }).join('');
+        return `<div class="antar-wrap ${acur ? 'antar-cur open' : ''}">
+          <div class="antar antar-head" onclick="this.parentNode.classList.toggle('open')">${ml}/${nm(a.lord)} <span>${fmtD(a.start)} – ${fmtD(a.end)}</span>${acur ? L('<b>← 现在</b>', '<b>← now</b>') : ''}<span class="parrow">▸</span></div>
+          <div class="prats">${prats}</div></div>`;
       }).join('');
       return `<div class="dasha ${cur ? 'dasha-cur' : past ? 'dasha-past' : ''}">
         <button class="dasha-head" onclick="this.parentNode.classList.toggle('open')">
           <span class="dl">${mahaLabel(d)}</span><span class="dy">${L(`${yrsOf(d)}年`, `${yrsOf(d)} yrs`)}${ygBad ? ` <span style="color:var(--bad)">⚠</span>` : ''}</span>
           <span class="dt">${fmtD(d.start)} – ${fmtD(d.end)}</span>${cur ? `<span class="tag tag-good">${L('进行中', 'current')}</span>` : ''}<span class="arrow">▾</span>
-        </button><div class="antars"><p class="antar-intro">${mahaIntro(d)}</p>${antars}</div></div>`;
+        </button><div class="antars"><p class="antar-intro">${mahaIntro(d)}</p><p class="muted-sm" style="margin:0 0 6px">${L('点子限展开第三层 pratyantar（精确到月）', 'Tap a sub-period to expand its pratyantar (down to the month)')}</p>${antars}</div></div>`;
     }).join('');
     const cur = findCur(set);
-    $('dashaNow').innerHTML = cur ? `<p>${mahaIntro(cur.maha)}</p><p class="muted">${L(`当前子限 ${dashaSys === 'yog' ? YOGINI_INFO[cur.maha.lord][0] + '/' + YOGINI_INFO[cur.antar.lord][0] : V.PLANET_CN[cur.maha.lord] + '/' + V.PLANET_CN[cur.antar.lord]}（${fmtD(cur.antar.start)} – ${fmtD(cur.antar.end)}）。`, `Current sub-period ${dashaSys === 'yog' ? YOGINI_INFO[cur.maha.lord][0] + '/' + YOGINI_INFO[cur.antar.lord][0] : V.PLANET_CN[cur.maha.lord] + '/' + V.PLANET_CN[cur.antar.lord]} (${fmtD(cur.antar.start)} – ${fmtD(cur.antar.end)}).`)}</p>` : `<p class="muted">${L('当前时间超出该大运体系范围。', 'The current time is outside this dasha system’s range.')}</p>`;
+    const lv3 = cur ? `${nm(cur.maha.lord)}/${nm(cur.antar.lord)}${cur.prat ? '/' + nm(cur.prat.lord) : ''}` : '';
+    const lv3span = cur ? (cur.prat ? `${fmtD(cur.prat.start)} – ${fmtD(cur.prat.end)}` : `${fmtD(cur.antar.start)} – ${fmtD(cur.antar.end)}`) : '';
+    $('dashaNow').innerHTML = cur ? `<p>${mahaIntro(cur.maha)}</p><p class="muted">${L(`当前 <b>${lv3}</b>（大运/子限/三级，本级 ${lv3span}）。`, `Now: <b>${lv3}</b> (maha / antar / pratyantar, this level ${lv3span}).`)}</p>` : `<p class="muted">${L('当前时间超出该大运体系范围。', 'The current time is outside this dasha system’s range.')}</p>`;
   }
 
   /* ---------- 个人运势 ---------- */
