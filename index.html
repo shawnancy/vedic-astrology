@@ -116,6 +116,7 @@ select{background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),
 .av-track{flex:1;height:14px;background:#eef0f5;border-radius:7px;overflow:hidden}
 .av-fill{display:block;height:100%;border-radius:7px;transition:width .3s}
 .av-n{flex:0 0 auto;width:26px;text-align:right;font-weight:700;font-size:13px;color:var(--text)}
+.sb-tag{flex:0 0 auto;width:36px;text-align:right;font-size:12px;font-weight:700}
 .av-grid{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-top:8px}
 .av-grid table{width:100%;border-collapse:collapse;font-size:12px;min-width:480px}
 .av-grid th,.av-grid td{padding:4px 6px;text-align:center;border-bottom:1px solid #eef0f5;white-space:nowrap}
@@ -379,6 +380,7 @@ footer p{margin-bottom:6px}
     <button class="tabbtn" data-tab="fortune" onclick="_tab('fortune')"><span class="ti">📈</span><span class="tl" data-en="Fortune">个人运势</span></button>
     <button class="tabbtn" data-tab="read" onclick="_tab('read')"><span class="ti">📜</span><span class="tl" data-en="Reading">解读</span></button>
     <button class="tabbtn" data-tab="dasha" onclick="_tab('dasha')"><span class="ti">⏳</span><span class="tl" data-en="Dasha">大运</span></button>
+    <button class="tabbtn" data-tab="bala" onclick="_tab('bala')"><span class="ti">💪</span><span class="tl" data-en="Strength">力量</span></button>
   </nav>
 
   <!-- 星盘 (表单+结果) -->
@@ -455,7 +457,6 @@ footer p{margin-bottom:6px}
         </div>
       </div>
       <div class="card tblwrap" id="ptable"></div>
-      <div class="card" id="avBox"></div>
 
       <div class="share-row">
         <button class="btn-sub" onclick="_copyLink(this)" data-en="Copy chart link">复制本盘链接</button>
@@ -594,6 +595,21 @@ footer p{margin-bottom:6px}
       <div id="dashaNow"></div>
       <div id="dashaList" style="margin-top:12px"></div>
       <p class="muted-sm" style="margin-top:10px" data-en="Tap any Dasha to expand its reading and the nine Antardasha sub-periods. The combination of the birth-chart condition of the &quot;Dasha lord + sub-period lord&quot; sets the tone of that span.">点击任意大运可展开该周期的解读与九段子限（Antardasha）。"大运主星 + 子限主星"的本命状态组合，决定该时段的吉凶底色。</p>
+    </div>
+  </div>
+
+  <!-- 力量 (六力 Shadbala + 八分力 Ashtakavarga) -->
+  <div class="tabpanel" id="tab-bala" style="display:none">
+    <div class="card need-chart" id="ne-bala">
+      <div class="nc-icon">💪</div>
+      <div class="nc-title" data-en="Planetary strength needs your chart">九曜力量需要你的星盘</div>
+      <div class="nc-desc" data-en="Shadbala (six-fold planetary strength) and Ashtakavarga (the 12-house score map) are both computed from your chart — cast it first.">六力 Shadbala（九曜六类强弱）与八分力 Ashtakavarga（12 宫打分）都按你的盘计算，先排盘。</div>
+      <button class="nc-btn" onclick="_tab('chart')" data-en="Cast a chart">去排盘</button>
+      <div class="nc-chips" id="ne-bala-chips"></div>
+    </div>
+    <div id="balaCard" style="display:none">
+      <div class="card" id="shadBox"></div>
+      <div class="card" id="avBox"></div>
     </div>
   </div>
 
@@ -1478,7 +1494,556 @@ return new kd(this.curr.time,a,b)};$jscomp.global.Object.defineProperties(H.prot
     return { bav, sav, savTotal: sav.reduce((a, b) => a + b, 0), planets: AV_PLANETS };
   }
 
-  return { compute, transitsNow, daily, publicPanchang, ashtakoota, manglik, extraKutas, overlayHouses, interAspects, d9Marriage, vashyaOf, ayanamsa, vargaSign, navamsaSign, ashtakavarga, SIGNS, SIGNS_SA, NAKSHATRAS, PLANETS, PLANET_CN, PLANET_GLYPH, SIGN_LORD, DASHA_LORDS, DASHA_YEARS, norm360, signOf, nakOf, fmtDeg, YONI, YONI_CN, GANA, NADI, TARA_NAMES };
+  /* ================= Shadbala (六分力) — 移植自 PyJHora strength.shad_bala =================
+   * 7 行星(日..土), 六大力: 位置力/时间力/方向力/运动力/自然力/相位力, 单位 virupa(1 rupa=60).
+   * 校验对标 PyJHora (Lahiri). 已逐分量验证 ±0.5 rupa 内, 强弱判定全一致.
+   */
+  // ---- 行星 id (0=Sun..6=Saturn) 与名称映射 ----
+  const SB_PLANETS = ['Sun', 'Moon', 'Mars', 'Mercury', 'Jupiter', 'Venus', 'Saturn'];
+  const SB_KETU = 7; // SUN_TO_SATURN = 0..6
+  // 深陷点黄经 (planet_deep_debilitation_longitudes, 恒星黄道) [Sun..Saturn]
+  const DEEP_DEBIL = [190.0, 213.0, 118.0, 345.0, 275.0, 177.0, 20.0];
+  // 七分力分盘因子
+  const SAPTHA_FACTORS = [1, 2, 3, 7, 9, 12, 30];
+  // 木三角座 (moola_trikona, sign index) [Sun..Saturn]
+  const MOOLA_TRIKONA = [4, 1, 0, 5, 8, 6, 10];
+  // 自然友/中/敌 (按行星 id, 含 Rahu7/Ketu8)
+  const NAT_FRIEND = [[1, 2, 4], [0, 3], [0, 1, 4], [0, 5], [0, 1, 2], [3, 6, 7], [3, 5, 7], [5, 6], [0, 2]];
+  const NAT_NEUTRAL = [[3, 8], [2, 4, 5, 6, 7, 8], [5, 6, 7, 8], [2, 4, 6, 7], [6, 8], [2, 4, 8], [4], [3, 4, 8], [1, 3, 4, 7]];
+  const NAT_ENEMY = [[5, 6, 7], [], [3], [1, 8], [3, 5, 7], [0, 1], [0, 1, 2, 8], [0, 1, 2], [5, 6]];
+  // 庙主表 (_house_owners_list, sign->planet id)
+  const HOUSE_OWNERS = [2, 5, 3, 1, 0, 3, 5, 2, 4, 6, 6, 4];
+  // house_strengths_of_planets[p][sign]: 5=庙 4=旺 3=友 2=中 1=敌 0=陷
+  const HOUSE_STRENGTH = [
+    [4, 1, 2, 2, 5, 2, 0, 3, 3, 1, 1, 3],
+    [2, 4, 3, 5, 3, 3, 2, 0, 2, 2, 2, 2],
+    [5, 2, 1, 0, 3, 1, 2, 5, 3, 4, 2, 3],
+    [2, 3, 5, 1, 3, 5, 3, 2, 2, 2, 2, 0],
+    [3, 1, 1, 4, 3, 3, 1, 3, 5, 0, 2, 5],
+    [2, 5, 3, 1, 1, 0, 5, 2, 3, 3, 3, 4],
+    [0, 3, 3, 1, 1, 3, 4, 1, 2, 5, 5, 2],
+  ];
+  // dreshkon_bala_list: 各 10° 段 (0/1/2) 内得 15 分的行星
+  const DRESHKON_LIST = [[0, 2, 4], [3, 6], [1, 5]];
+  // dig bala 失力宫 (cusp index, [Sun..Saturn])
+  const DIG_POWERLESS = [3, 9, 3, 6, 6, 9, 0];
+  const EVEN_SIGNS = [1, 3, 5, 7, 9, 11], ODD_SIGNS = [0, 2, 4, 6, 8, 10];
+  // 自然力 (常量, virupa)
+  const NAISARGIKA = [60.0, 51.43, 17.14, 25.71, 34.29, 42.86, 8.57];
+  // 时间力小项常量
+  const ABDA_WEEKDAYS = [2, 3, 4, 5, 6, 0, 1]; // abdahipathi_weekdays
+  const HORA_ORDER = [6, 4, 2, 0, 5, 3, 1];
+  const DISC_DIAMETERS = [-1, -1, 9.4, 6.6, 190.4, 16.6, 158.0]; // planets_disc_diameters[0..6]
+  const SB_REQUIRED = [5, 6, 5, 7, 6.5, 5.5, 5];
+  // cheshta 历元表常量 (Ujjain 1900)
+  const CHESHTA_MEAN_POS = [257.4568, -1, 270.22, 164, 220.04, 328.51, 236.74];
+  const CHESHTA_CORR = [[1, 0, 0], [1, 0, 0], [1, 0, 0], [1, 6.67, -0.00133], [-1, 3.3, 0.0067], [-1, 5, 0.0001], [1, 5, 0.001]];
+  const UJJAIN_EPOCH_TABLE = [
+    { 1: [0.9856, 98.5602, 265.6026, 136.0265], 2: [1.9712, 197.1205, 171.2053, 272.0531], 3: [2.9568, 295.6808, 76.8080, 48.0796], 4: [3.9424, 34.2411, 342.4106, 184.1062], 5: [4.9280, 132.8013, 248.0133, 320.1327], 6: [5.9136, 231.3616, 153.6159, 96.1593], 7: [6.8992, 329.9218, 59.2186, 232.1868], 8: [7.8848, 68.4821, 324.8212, 8.2124], 9: [8.8704, 167.0424, 230.4239, 144.2389] },
+    { 1: [0.9856, 98.5602, 265.6026, 136.0265], 2: [1.9712, 197.1205, 171.2053, 272.0531], 3: [2.9568, 295.6808, 76.8080, 48.0796], 4: [3.9424, 34.2411, 342.4106, 184.1062], 5: [4.9280, 132.8013, 248.0133, 320.1327], 6: [5.9136, 231.3616, 153.6159, 96.1593], 7: [6.8992, 329.9218, 59.2186, 232.1868], 8: [7.8848, 68.4821, 324.8212, 8.2124], 9: [8.8704, 167.0424, 230.4239, 11.1442389] },
+    { 1: [0.524, 52.40, 164.02, 200.19], 2: [1.048, 104.80, 328.04, 40.39], 3: [1.572, 157.21, 132.06, 240.58], 4: [2.096, 209.61, 296.08, 80.78], 5: [2.620, 262.01, 100.10, 280.97], 6: [3.144, 314.41, 264.12, 121.16], 7: [3.668, 6.81, 68.14, 321.36], 8: [4.192, 59.22, 232.15, 161.55], 9: [4.716, 111.62, 36.17, 1.74] },
+    { 1: [4.09, 40.92, 49.23, 132.32, 243.18], 2: [8.18, 81.84, 98.46, 264.64, 126.36], 3: [12.28, 122.77, 147.70, 36.95, 9.54], 4: [16.37, 163.69, 196.93, 169.27, 252.72], 5: [20.46, 204.62, 246.16, 301.59, 135.90], 6: [24.55, 245.54, 295.39, 73.91, 19.08], 7: [28.65, 286.46, 344.62, 206.23, 262.26], 8: [32.74, 327.38, 33.85, 338.54, 145.44], 9: [36.83, 8.31, 83.09, 110.86, 28.63] },
+    { 1: [0.08, 0.83, 8.31, 83.1, 110.96], 2: [0.17, 1.66, 16.62, 166.19, 221.93], 3: [0.25, 2.49, 24.93, 249.29, 332.89], 4: [0.33, 3.32, 33.24, 332.39, 83.85], 5: [0.41, 4.15, 41.55, 55.48, 194.82], 6: [0.50, 4.99, 49.86, 138.58, 305.78], 7: [0.58, 5.82, 58.17, 221.67, 56.74], 8: [0.66, 6.65, 66.48, 304.77, 167.71], 9: [0.75, 7.48, 74.79, 27.87, 278.67] },
+    { 1: [1.60, 16.02, 160.21, 162.15, 181.46], 2: [3.20, 32.04, 320.43, 324.29, 2.93], 3: [4.81, 48.06, 120.64, 126.44, 184.39], 4: [6.41, 64.09, 280.86, 288.59, 5.86], 5: [8.01, 80.11, 81.07, 90.73, 187.32], 6: [9.61, 96.13, 241.29, 252.88, 8.78], 7: [11.21, 112.15, 41.50, 55.02, 190.25], 8: [12.82, 128.17, 201.72, 217.17, 11.71], 9: [14.42, 144.19, 1.93, 19.32, 193.18] },
+    { 1: [0.03, 0.33, 3.34, 33.44, 334.39], 2: [0.07, 0.67, 6.69, 66.88, 308.79], 3: [0.10, 1.00, 10.03, 100.32, 283.18], 4: [0.13, 1.34, 13.38, 133.76, 257.57], 5: [0.17, 1.67, 16.72, 167.20, 231.97], 6: [0.20, 2.01, 20.06, 200.64, 206.36], 7: [0.23, 2.34, 23.41, 234.08, 180.75], 8: [0.27, 2.68, 26.75, 267.51, 155.14], 9: [0.30, 3.01, 30.10, 300.95, 129.54] },
+  ];
+  const CHESHTA_SPEED = [0.9856, -1, 0.524, 4.0923, 0.0831, 1.60215, 0.033439];
+  // surya 常量索引 -> planet id: cheshta 循环用
+  // _MARS=4,_MERCURY=2,_JUPITER=5,_VENUS=3,_SATURN=6; planet_list[4]=2,[2]=3,[5]=4,[3]=5,[6]=6
+  const CHESHTA_LOOP = [
+    { surya: 4, pid: 2 }, // Mars
+    { surya: 2, pid: 3 }, // Mercury
+    { surya: 5, pid: 4 }, // Jupiter
+    { surya: 3, pid: 5 }, // Venus
+    { surya: 6, pid: 6 }, // Saturn
+  ];
+
+  function shadbala(chart) {
+    const inp = chart.input;
+    const round2 = x => Math.round(x * 100) / 100;
+    // 行星恒星黄经 [Sun..Saturn] 以及 Rahu/Ketu
+    const sidLon = SB_PLANETS.map(p => norm360(chart.planets[p].lon));
+    const ayan = chart.ayanamsa;
+    const lagnaLon = norm360(chart.lagna.lon);
+    const lagnaSign = signOf(lagnaLon);
+
+    // === 时间基础: 用 astronomy-engine 求日出/日落 (匹配 drik 中心日轮 + 折射) ===
+    const obs = new A.Observer(inp.lat, inp.lon, 0);
+    const tzMs = inp.tz * 3600 * 1000;
+    // 给定本地日期(y,m,d) 返回当天日出/日落本地小时 (drik 口径: 视高度 ~ -50' 上缘+折射近似中心)
+    function riseSet(y, m, d) {
+      const startMs = Date.UTC(y, m - 1, d, 0, 0, 0) - tzMs;
+      const dayStart = A.MakeTime(new Date(startMs));
+      // 目标高度 0° = 日面中心过真地平、不计折射: 实测与 drik/swisseph sunrise 对齐 <1 秒
+      const rise = A.SearchAltitude(A.Body.Sun, obs, +1, dayStart, 1, 0);
+      const set = rise ? A.SearchAltitude(A.Body.Sun, obs, -1, rise, 1, 0) : null;
+      const dayMid = Date.UTC(y, m - 1, d, 0, 0, 0); // 本地午夜(UTC基准)用于换算本地小时
+      const toLocalH = t => (t.date.getTime() - dayMid) / 3600000 + inp.tz;
+      return { rise: rise ? toLocalH(rise) : null, set: set ? toLocalH(set) : null, riseT: rise, setT: set };
+    }
+    const today = riseSet(inp.year, inp.month, inp.day);
+    // 次日 / 前日 (用 Date 推算日历)
+    const dNext = new Date(Date.UTC(inp.year, inp.month - 1, inp.day + 1));
+    const dPrev = new Date(Date.UTC(inp.year, inp.month - 1, inp.day - 1));
+    const next = riseSet(dNext.getUTCFullYear(), dNext.getUTCMonth() + 1, dNext.getUTCDate());
+    const prev = riseSet(dPrev.getUTCFullYear(), dPrev.getUTCMonth() + 1, dPrev.getUTCDate());
+    const srh = today.rise, ssh = today.set;
+    const tobh = inp.hour + inp.minute / 60; // 出生本地小时
+    const dl = ssh - srh, nl = 24 + next.rise - ssh;
+    // midnight (drik.midnight): mnhl = 0.5*(今日日出 + 昨日日落); <12 -> 12-mnhl else -12
+    let mnhl = 0.5 * (srh + (prev.set - 24)); // 昨日日落以"今日午夜前"计 => prev.set 本身是昨日本地小时(0..24), 减24得负
+    // drik: srh(今日,0..24), pssh(昨日日落,本地0..24); mnhl=0.5*(srh+pssh)
+    mnhl = 0.5 * (srh + prev.set);
+    if (mnhl < 12) mnhl = 12 - mnhl; else mnhl -= 12;
+
+    // === 分盘星座: vargaSign 已实现 BPHS 规则 (D2 用 vedic-core 的 Hora) ===
+    // pp[p] = D-chart 中行星 p 所落星座 (0..11). lagna 用 lagnaLon.
+    function dchart(D) {
+      const o = { lagna: vargaSign(lagnaLon, D) };
+      for (let p = 0; p < 7; p++) o[p] = vargaSign(sidLon[p], D);
+      return o;
+    }
+    const D1 = dchart(1), D9 = dchart(9);
+    const dSV = {};
+    for (const D of SAPTHA_FACTORS) dSV[D] = dchart(D);
+
+    // ---------- 关系: 自然 + 临时 -> 复合 (0..4) ----------
+    // h_to_p (D1): sign -> 该宫行星 id 列表 (含 Rahu7/Ketu8 + 'L')
+    const D1sign = []; for (let s = 0; s < 12; s++) D1sign.push([]);
+    for (let p = 0; p < 7; p++) D1sign[vargaSign(sidLon[p], 1)].push(p);
+    D1sign[vargaSign(norm360(chart.planets.Rahu.lon), 1)].push(7);
+    D1sign[vargaSign(norm360(chart.planets.Ketu.lon), 1)].push(8);
+    const pToSign = []; // planet id -> sign
+    for (let p = 0; p < 9; p++) {
+      const lon = p < 7 ? sidLon[p] : (p === 7 ? norm360(chart.planets.Rahu.lon) : norm360(chart.planets.Ketu.lon));
+      pToSign[p] = vargaSign(lon, 1);
+    }
+    const TEMP_FRIEND_POS = [1, 2, 3, 9, 10, 11], TEMP_ENEMY_POS = [0, 4, 5, 6, 7, 8];
+    function tempSet(positions) {
+      const out = [];
+      for (let p = 0; p < 9; p++) {
+        const ps = pToSign[p]; const set = new Set();
+        for (const h of positions) {
+          for (const q of D1sign[(ps + h) % 12]) if (q !== p) set.add(q);
+        }
+        out[p] = set;
+      }
+      return out;
+    }
+    const tf = tempSet(TEMP_FRIEND_POS), te = tempSet(TEMP_ENEMY_POS);
+    // 复合关系 0..4 (Adhi-enemy..Adhi-friend)
+    const compound = [];
+    for (let p = 0; p < 9; p++) {
+      compound[p] = [];
+      for (let p1 = 0; p1 < 9; p1++) {
+        if (p === p1) { compound[p][p1] = -1; continue; }
+        const nf = NAT_FRIEND[p].includes(p1), nn = NAT_NEUTRAL[p].includes(p1), ne = NAT_ENEMY[p].includes(p1);
+        const isTf = tf[p].has(p1), isTe = te[p].has(p1);
+        let v = 0;
+        if (nf && isTf) v = 4;
+        else if ((nf && isTe) || (ne && isTf)) v = 2;
+        else if (nn && isTf) v = 3;
+        else if (nn && isTe) v = 1;
+        else if (ne && isTe) v = 0;
+        else v = 0; // 未匹配 (理论不应出现) 默认 0
+        compound[p][p1] = v;
+      }
+    }
+
+    // ---------- 位置力 Sthana Bala ----------
+    // 1. uchcha bala (Saravali: pd/3)
+    const uchcha = [];
+    for (let p = 0; p < 7; p++) {
+      let pd = norm360(sidLon[p] - DEEP_DEBIL[p]);
+      if (pd > 180) pd = 360 - pd;
+      uchcha[p] = round2(pd / 3);
+    }
+    // 2. sapthavargaja bala
+    const SB_FAC_COMPOUND = { 0: 1.875, 1: 3.75, 2: 7.5, 3: 15, 4: 22.5 }; // index = compound 0..4
+    const svb = [0, 0, 0, 0, 0, 0, 0];
+    for (const D of SAPTHA_FACTORS) {
+      for (let p = 0; p < 7; p++) {
+        const h = dSV[D][p];
+        const owner = HOUSE_OWNERS[h];
+        let val;
+        if (h === MOOLA_TRIKONA[p] && D === 1) val = 45;
+        else if (HOUSE_STRENGTH[p][h] === 5) val = 30; // own/owner-ruler
+        else val = SB_FAC_COMPOUND[compound[p][owner]];
+        svb[p] += val;
+      }
+    }
+    for (let p = 0; p < 7; p++) svb[p] = round2(svb[p]);
+    // 3. ojhayugma (奇偶) bala: D1 + D9
+    const ojha = [];
+    for (let p = 0; p < 7; p++) {
+      let v = 0;
+      const rh = D1[p], nh = D9[p];
+      if (p === 1 || p === 5) { // Moon, Venus -> even
+        if (EVEN_SIGNS.includes(rh)) v += 15;
+        if (EVEN_SIGNS.includes(nh)) v += 15;
+      } else {
+        if (ODD_SIGNS.includes(rh)) v += 15;
+        if (ODD_SIGNS.includes(nh)) v += 15;
+      }
+      ojha[p] = v;
+    }
+    // 4. kendra bala (基于 D1, 自上升)
+    const kendras = (asc) => [(asc) % 12, (asc + 3) % 12, (asc + 6) % 12, (asc + 9) % 12];
+    const panapharas = (asc) => kendras((asc + 1) % 12);
+    const apoklimas = (asc) => kendras((asc + 2) % 12);
+    const kenSet = kendras(lagnaSign), panSet = panapharas(lagnaSign), apoSet = apoklimas(lagnaSign);
+    const kendra = [];
+    for (let p = 0; p < 7; p++) {
+      const h = D1[p];
+      if (kenSet.includes(h)) kendra[p] = 60;
+      else if (panSet.includes(h)) kendra[p] = 30;
+      else if (apoSet.includes(h)) kendra[p] = 15;
+      else kendra[p] = 0;
+    }
+    // 5. drekkana (decanate) bala: D1 度数所在 10° 段
+    const drek = [];
+    for (let p = 0; p < 7; p++) {
+      const deg = norm360(sidLon[p]) % 30;
+      const pd = Math.floor(deg / 10);
+      drek[p] = DRESHKON_LIST[pd].includes(p) ? 15 : 0;
+    }
+    const sthana = [];
+    for (let p = 0; p < 7; p++) sthana[p] = round2(uchcha[p] + svb[p] + ojha[p] + kendra[p] + drek[p]);
+
+    // ---------- 方向力 Dig Bala ----------
+    // 只需 4 角点: Asc(cusp0)=lagnaLon, MC(cusp9), IC(cusp3)=MC+180, Desc(cusp6)=Asc+180
+    const mcSid = computeMC(chart, inp, ayan);
+    const cusp = [];
+    cusp[0] = lagnaLon; cusp[6] = norm360(lagnaLon + 180);
+    cusp[9] = mcSid; cusp[3] = norm360(mcSid + 180);
+    const dig = [];
+    for (let p = 0; p < 7; p++) {
+      const dbf = cusp[DIG_POWERLESS[p]];
+      let diff = Math.abs(dbf - sidLon[p]);
+      dig[p] = round2(diff / 3); // drik: abs(dbf - p_long)/3 (不取最短弧, 直接绝对值)
+    }
+
+    // ---------- 时间力 Kaala Bala ----------
+    // nathonnatha
+    let tdiff = tobh < 12 ? (tobh - mnhl) * 60 / 12 : (24 + mnhl - tobh) * 60 / 12;
+    const natho = [0, 0, 0, 0, 0, 0, 0];
+    for (const p of [0, 4, 5]) natho[p] = round2(tdiff);
+    for (const p of [1, 2, 6]) natho[p] = round2(60 - tdiff);
+    natho[3] = 60.0;
+    // paksha
+    const sunL = sidLon[0], moonL = sidLon[1];
+    let pb = round2(Math.abs(sunL - moonL) / 3);
+    const tithiNum = computeTithi(sunL, moonL); // 1..30 (drik 口径)
+    const bm = beneficsMalefics(D1, tithiNum);
+    const paksha = [];
+    for (let p = 0; p < 7; p++) paksha[p] = pb;
+    for (const p of bm.malefics) if (p < 7) paksha[p] = round2(60 - pb);
+    paksha[1] *= 2;
+    // tribhaga
+    const tri = [0, 0, 0, 0, 0, 0, 0];
+    tri[4] = 60; // Jupiter always
+    const dlinc = dl / 3, nlinc = nl / 3;
+    if (tobh >= srh && tobh < srh + dlinc) tri[3] = 60;
+    else if (tobh >= srh + dlinc && tobh < srh + 2 * dlinc) tri[0] = 60;
+    else if (tobh >= srh + 2 * dlinc && tobh < ssh) tri[6] = 60;
+    else if (tobh > ssh && tobh < ssh + nlinc) tri[1] = 60;
+    else if ((tobh >= ssh + nlinc && tobh < 24) || (tobh >= 0 && tobh < srh - nlinc)) tri[5] = 60;
+    else if (tobh >= srh - nlinc && tobh < srh) tri[2] = 60;
+    // abda/masa/vara (年/月/日主)
+    // drik 用本地 jd (无 tz 转换, hour=本地小时); chart.jd 是 UT, 故重算本地 jd
+    const jd = gregToJD(inp.year, inp.month, inp.day) + tobh / 24;
+    const ay = inp.year;
+    const jan1jd = gregToJD(ay, 1, 1);
+    const elapsedDays = Math.floor(jd - jan1jd + 1);
+    const aharganaAbda = daysElapsedSinceBase(ay - 1, 1951, 174) + elapsedDays;
+    const abda = [0, 0, 0, 0, 0, 0, 0];
+    let dAbda = (Math.floor(aharganaAbda / 360) * 3 + 1) % 7;
+    abda[ABDA_WEEKDAYS[dAbda]] = 15;
+    const masa = [0, 0, 0, 0, 0, 0, 0];
+    let dMasa = (Math.floor(aharganaAbda / 30) * 2 + 1) % 7;
+    masa[ABDA_WEEKDAYS[dMasa]] = 30;
+    // vaara (日主): _vaaradhipathi 用 base 1827/244
+    const vara = [0, 0, 0, 0, 0, 0, 0];
+    let aharganaVara = daysElapsedSinceBase(ay - 1, 1827, 244) + elapsedDays;
+    if (tobh < srh) aharganaVara -= 1;
+    let dVara = Math.floor(aharganaVara) % 7;
+    vara[ABDA_WEEKDAYS[dVara]] = 45;
+    // hora
+    const hora = [0, 0, 0, 0, 0, 0, 0];
+    // _vaara(jd) civil: use_aharghana=False -> ceil(jd+1)%7
+    let weekday = Math.ceil(jd + 1) % 7;
+    let tobhH = tobh;
+    if (tobh < srh) { weekday = (weekday - 1 + 7) % 7; tobhH += 24; }
+    const horaIdx = (Math.floor(tobhH - srh) + weekday + 1) % 7;
+    hora[HORA_ORDER[horaIdx]] = 60;
+    // ayana
+    const decl = declinations(sidLon, ayan);
+    const ayanaB = [];
+    for (let p = 0; p < 7; p++) {
+      let v = round2((24 + decl[p]) * 1.25);
+      if (p === 0) v *= 2;
+      ayanaB[p] = v;
+    }
+    // yuddha (行星战): 仅当两行星黄经极近且非日月
+    const yuddha = computeYuddha(sidLon, sthana, dig, natho, paksha, tri, hora);
+    const kaala = [];
+    for (let p = 0; p < 7; p++)
+      kaala[p] = round2(natho[p] + paksha[p] + tri[p] + abda[p] + masa[p] + vara[p] + hora[p] + ayanaB[p] + yuddha[p]);
+
+    // ---------- 运动力 Cheshta Bala ----------
+    const cheshta = [0, 0, 0, 0, 0, 0, 0]; // 日月恒为 0
+    const daysFromEpoch = (jd - 2415020.5) + (76 - inp.lon) / 15 / 24; // _PLACE_EPOCH.longitude=76
+    const sunMeanLong = meanLongSpeed(0, daysFromEpoch, inp.year);
+    for (const { surya, pid } of CHESHTA_LOOP) {
+      let meanLong = meanLongEpochTable(pid, daysFromEpoch, inp.year);
+      let seegrocha = sunMeanLong;
+      if (surya === 2 || surya === 3) { seegrocha = meanLong; meanLong = sunMeanLong; }
+      const trueLong = sidLon[pid];
+      const aveLong = 0.5 * (trueLong + meanLong);
+      const rck = Math.abs(seegrocha - aveLong);
+      cheshta[pid] = round2(rck / 3);
+    }
+
+    // ---------- 自然力 ----------
+    const naisargika = NAISARGIKA.slice();
+
+    // ---------- 相位力 Drik Bala ----------
+    const drik = computeDrik(sidLon, bm);
+
+    // ---------- 汇总 ----------
+    const result = {};
+    const ratios = [];
+    for (let p = 0; p < 7; p++) {
+      const total = round2(sthana[p] + kaala[p] + dig[p] + cheshta[p] + naisargika[p] + drik[p]);
+      const rupa = Math.round(total / 60 * 100) / 100;
+      const required = SB_REQUIRED[p];
+      const ratio = Math.round(rupa / required * 100) / 100;
+      result[SB_PLANETS[p]] = {
+        sthana: sthana[p], kaala: kaala[p], dig: dig[p], cheshta: cheshta[p],
+        naisargika: round2(naisargika[p]), drik: drik[p],
+        total, rupa, required, ratio, strong: ratio >= 1,
+      };
+      ratios.push([SB_PLANETS[p], ratio]);
+    }
+    result.order = ratios.sort((a, b) => b[1] - a[1]).map(x => x[0]);
+    return result;
+  }
+
+  // --- MC (中天) 恒星黄经 ---
+  function computeMC(chart, inp, ayan) {
+    const time = makeTime(inp.year, inp.month, inp.day, inp.hour, inp.minute, inp.tz);
+    const gast = A.SiderealTime(time); // apparent sidereal time, hours
+    const ramc = norm360(gast * 15 + inp.lon); // 本地恒星时角 (赤经)
+    const T = (jdUT(time) - 2451545.0) / 36525.0;
+    const omega = (125.04452 - 1934.136261 * T) * D2R;
+    const eps = (23.43929111 - 0.013004167 * T + 0.00256 * Math.cos(omega)) * D2R;
+    // MC 黄经: tan(λmc) = tan(RAMC)/cos(eps)
+    let mc = Math.atan2(Math.sin(ramc * D2R), Math.cos(ramc * D2R) * Math.cos(eps)) * R2D;
+    mc = norm360(mc);
+    return norm360(mc - ayan);
+  }
+
+  // --- tithi (drik 口径: 1..30) ---
+  function computeTithi(sunSid, moonSid) {
+    const diff = norm360(moonSid - sunSid);
+    return Math.ceil(diff / 12); // 1..30
+  }
+
+  // --- 复合 benefics/malefics (drik method=2) ---
+  function beneficsMalefics(D1, tithiNum) {
+    let benefics = [4, 5]; // Jupiter, Venus
+    let malefics = [0, 2, 6]; // Sun, Mars, Saturn (排除 Rahu/Ketu)
+    if (tithiNum > 15) malefics.push(1); else benefics.push(1); // Moon
+    // Mercury: 看与水星同座的吉/凶星数 (代码用 pp[4]=Mercury 所在座)
+    const mercSign = D1[3];
+    let mb = 0, mbn = 0;
+    for (const p of malefics) if (D1[p] === mercSign) mb++;
+    for (const p of benefics) if (D1[p] === mercSign) mbn++;
+    if ((mbn === 0 && mb === 0) || mbn > mb) benefics.push(3);
+    else if (mb > mbn) malefics.push(3);
+    else { // 相等: 取距水星最近者 (同座度数差最小); 简化用经度差 (此处罕见, 同座则比度数)
+      // 找与水星同座且最近的行星
+      let closest = null, best = Infinity;
+      for (let p = 0; p < 7; p++) {
+        if (p === 3 || D1[p] !== mercSign) continue;
+        const d = 0; if (d < best) { best = d; closest = p; }
+      }
+      if (closest !== null && benefics.includes(closest)) benefics.push(3); else malefics.push(3);
+    }
+    benefics = [...new Set(benefics)].sort((a, b) => a - b);
+    malefics = [...new Set(malefics)].sort((a, b) => a - b);
+    return { benefics, malefics };
+  }
+
+  // --- 赤纬 (drik.declination_of_planets, 反 Lagrange 插值) ---
+  function inverseLagrange(x, y, ya) {
+    let total = 0;
+    for (let i = 0; i < x.length; i++) {
+      let numer = 1, denom = 1;
+      for (let j = 0; j < x.length; j++) if (j !== i) { numer *= (ya - y[j]); denom *= (y[i] - y[j]); }
+      total += numer * x[i] / denom;
+    }
+    return total;
+  }
+  function declinations(sidLon, ayan) {
+    const bd = [0, 362 / 60, 703 / 60, 1002 / 60, 1238 / 60, 1388 / 60, 1440 / 60];
+    const bx = [0, 15, 30, 45, 60, 75, 90];
+    const decl = [];
+    for (let p = 0; p < 7; p++) {
+      let pLong = norm360(sidLon[p] + ayan); // 回归黄经
+      let sign = 1;
+      if (pLong >= 0 && pLong < 180) {
+        sign = -1;
+        if ([0, 2, 4, 5].includes(p)) sign = 1;
+      } else {
+        sign = -1;
+        if ([1, 6].includes(p)) sign = 1;
+      }
+      let bhuja = pLong % 360;
+      if (pLong > 90 && pLong < 180) bhuja = 180 - pLong;
+      else if (pLong > 180 && pLong < 270) bhuja = pLong - 180;
+      else if (pLong > 270 && pLong < 360) bhuja = 360 - pLong;
+      bhuja = Math.round(bhuja * 100) / 100;
+      if (p === 3) sign = 1; // Mercury override (drik: north_south_sign[3]=1)
+      decl[p] = sign * inverseLagrange(bd, bx, bhuja);
+    }
+    return decl;
+  }
+
+  // --- 历法辅助 ---
+  function gregToJD(y, m, d) {
+    // Julian day at 00:00 UT of gregorian date (drik.gregorian_to_jd, swe.julday at hour 0)
+    let a = Math.floor((14 - m) / 12);
+    let yy = y + 4800 - a;
+    let mm = m + 12 * a - 3;
+    let jdn = d + Math.floor((153 * mm + 2) / 5) + 365 * yy + Math.floor(yy / 4) - Math.floor(yy / 100) + Math.floor(yy / 400) - 32045;
+    return jdn - 0.5;
+  }
+  function isLeap(y) { return (y % 4 === 0 && y % 100 !== 0) || (y % 400 === 0); }
+  function daysElapsedSinceBase(year, baseYear, baseDays) {
+    const totalYears = year - baseYear;
+    let leap = 0;
+    for (let yy = baseYear + 1; yy <= year; yy++) if (isLeap(yy)) leap++;
+    const nonLeap = totalYears - leap;
+    return baseDays + leap * 366 + nonLeap * 365;
+  }
+
+  // --- cheshta 平黄经 (线性公式, 用于太阳) ---
+  function planetLongCorrection(pid, yearsSinceEpoch) {
+    const c = CHESHTA_CORR[pid];
+    return c[0] * (c[1] + c[2] * yearsSinceEpoch);
+  }
+  function meanLongSpeed(pid, daysFromEpoch, year) {
+    if (pid === 1) return 0;
+    const speed = CHESHTA_SPEED[pid];
+    const yse = year - 1900;
+    const corr = planetLongCorrection(pid, yse);
+    return norm360(CHESHTA_MEAN_POS[pid] + daysFromEpoch * speed + corr);
+  }
+  // --- cheshta 平黄经 (Ujjain 历元查表法) ---
+  function meanLongEpochTable(pid, daysFromEpoch, year) {
+    if (pid === 1) return 0;
+    const tbl = UJJAIN_EPOCH_TABLE[pid];
+    const hasTens = tbl[1].length > 4;
+    const whole = Math.floor(daysFromEpoch);
+    const decimalPart = daysFromEpoch - whole;
+    const tenThousands = Math.floor(whole / 10000) % 10;
+    const thousands = Math.floor(whole / 1000) % 10;
+    const hundreds = Math.floor(whole / 100) % 10;
+    const tensAndUnits = whole % 100;
+    const tens = Math.floor(whole / 10) % 10;
+    const units = whole % 10;
+    const get = (k, def) => (tbl[k] !== undefined ? tbl[k] : def);
+    const vTenThousands = get(tenThousands, [0, 0, 0, 0]).slice(-1)[0];
+    const vThousands = get(thousands, [0, 0, 0, 0]).slice(-2)[0];
+    const vHundreds = get(hundreds, [0, 0, 0, 0]).slice(-3)[0];
+    let combinedUnits;
+    if (hasTens) {
+      const vTens = get(tens, [0, 0, 0, 0, 0])[1];
+      const vUnits = get(units, [0, 0, 0, 0])[0];
+      combinedUnits = vTens + vUnits;
+    } else {
+      const unitsRow = Math.floor(tensAndUnits / 10);
+      const unitsRowVal = get(unitsRow, [0, 0, 0, 0])[0];
+      combinedUnits = 10 * unitsRowVal;
+    }
+    const vDecimal = decimalPart * get(1, [0, 0, 0, 0])[0];
+    let total = vTenThousands + vThousands + vHundreds + combinedUnits + vDecimal + CHESHTA_MEAN_POS[pid];
+    const yse = year - 1900;
+    total += planetLongCorrection(pid, yse);
+    return ((total % 360) + 360) % 360;
+  }
+
+  // --- 行星战 yuddha bala ---
+  function computeYuddha(sidLon, sthana, dig, natho, paksha, tri, hora) {
+    const yb = [0, 0, 0, 0, 0, 0, 0];
+    // 找两个黄经最近的行星
+    let bestI = -1, bestJ = -1, bestD = Infinity;
+    for (let i = 0; i < 7; i++) for (let j = i + 1; j < 7; j++) {
+      let d = Math.abs(sidLon[i] - sidLon[j]); if (d > 180) d = 360 - d;
+      if (d < bestD) { bestD = d; bestI = i; bestJ = j; }
+    }
+    // drik: 用 closest_elements; 仅当最近对都非日月时才有战
+    if (bestI <= 1 || bestJ <= 1) return yb; // 含日(0)或月(1) -> 全 0
+    // 行星战仅在角距很小(同度)时发生; PyJHora 用 closest_elements 取最近, 实务上需 < ~1°?
+    // 为忠实 drik: 它对任意最近对都计算 (除非含日月). 但 disc_diameters 仅火水木金土有效.
+    const DISC = [-1, -1, 9.4, 6.6, 190.4, 16.6, 158.0];
+    const totals = [];
+    for (let p = 0; p < 7; p++) totals[p] = sthana[p] + dig[p] + natho[p] + paksha[p] + tri[p] + hora[p];
+    const bdiff = Math.abs(totals[bestI] - totals[bestJ]);
+    const ddiff = Math.abs(DISC[bestI] - DISC[bestJ]);
+    if (ddiff === 0) return yb;
+    const yv = Math.round(bdiff / ddiff * 100) / 100;
+    yb[bestI] = yv; yb[bestJ] = -yv;
+    return yb;
+  }
+
+  // --- 相位力 drik bala ---
+  function drikCalc(angle, p1) {
+    // angle = aspected - aspecting (mod 360); p1 = aspecting planet id
+    let v;
+    if (angle >= 0 && angle < 30) v = 0;
+    else if (angle >= 30 && angle < 60) v = 0.5 * (angle - 30);
+    else if (angle >= 60 && angle < 90) { v = (angle - 60) + 15; if (p1 === 6) v += 45; }
+    else if (angle >= 90 && angle < 120) { v = 0.5 * (120 - angle) + 30; if (p1 === 2) v += 15; }
+    else if (angle >= 120 && angle < 150) { v = 150 - angle; if (p1 === 4) v += 30; }
+    else if (angle >= 150 && angle < 180) v = 2 * (angle - 150);
+    else if (angle >= 180 && angle < 300) {
+      v = 0.5 * (300 - angle);
+      if (p1 === 2 && angle >= 210 && angle < 240) v += 15;
+      if (p1 === 4 && angle >= 240 && angle < 270) v += 30;
+      if (p1 === 6 && angle >= 270 && angle < 300) v += 45;
+    } else v = 0;
+    return Math.round(v * 100) / 100;
+  }
+  function computeDrik(sidLon, bm) {
+    // dk[p1][p2] = aspecting p2 -> aspected p1
+    const dk = [];
+    for (let p1 = 0; p1 < 7; p1++) {
+      dk[p1] = [];
+      for (let p2 = 0; p2 < 7; p2++) {
+        const angle = Math.round(norm360(sidLon[p1] - sidLon[p2]) * 100) / 100;
+        dk[p1][p2] = drikCalc(angle, p2);
+      }
+    }
+    // drik: dk = transpose -> dk[row=aspecting][col=aspected]; 然后吉减凶 /4
+    // 这里 dk[p1][p2] 已是 aspecting=p2; 转置后 T[p2][p1]. 用 sub/asub grahas (=bm)
+    const subha = bm.benefics.filter(p => p < 7);
+    const asubha = bm.malefics.filter(p => p < 7);
+    const dkp = [0, 0, 0, 0, 0, 0, 0], dkm = [0, 0, 0, 0, 0, 0, 0], dkf = [0, 0, 0, 0, 0, 0, 0];
+    // T[row][col]: row=aspecting, col=aspected => T[row][col] = dk[col][row]
+    for (let row = 0; row < 7; row++) {
+      for (let col = 0; col < 7; col++) {
+        const val = dk[col][row]; // aspecting=row -> aspected=col
+        if (subha.includes(row)) dkp[col] += val;
+        if (asubha.includes(row)) dkm[col] += val;
+        dkf[col] = Math.round((dkp[col] - dkm[col]) / 4 * 100) / 100;
+      }
+    }
+    return dkf;
+  }
+
+  return { compute, shadbala, transitsNow, daily, publicPanchang, ashtakoota, manglik, extraKutas, overlayHouses, interAspects, d9Marriage, vashyaOf, ayanamsa, vargaSign, navamsaSign, ashtakavarga, SIGNS, SIGNS_SA, NAKSHATRAS, PLANETS, PLANET_CN, PLANET_GLYPH, SIGN_LORD, DASHA_LORDS, DASHA_YEARS, norm360, signOf, nakOf, fmtDeg, YONI, YONI_CN, GANA, NADI, TARA_NAMES };
 }));
 
 </script>
@@ -2564,7 +3129,7 @@ const WORLD_CITIES=[["Shanghai","CN",31.2222,121.4581,0],["Beijing","CN",39.9075
 
   function setHasChart(has) {
     document.querySelectorAll('.need-chart').forEach(el => el.style.display = has ? 'none' : '');
-    for (const id of ['chartArea', 'matchCard', 'dailyBox', 'fortuneBox', 'reading', 'dashaCard', 'aiBox'])
+    for (const id of ['chartArea', 'matchCard', 'dailyBox', 'fortuneBox', 'reading', 'dashaCard', 'aiBox', 'balaCard'])
       { const el = $(id); if (el) el.style.display = has ? '' : 'none'; }
   }
   function onSubmit(noScroll, keepTab) {
@@ -2692,7 +3257,7 @@ const WORLD_CITIES=[["Shanghai","CN",31.2222,121.4581,0],["Beijing","CN",39.9075
       } else { mp.style.display = 'none'; mp.innerHTML = ''; }
     }
     // 各空态页签的档案快捷芯片 (点击=以该档案为本人盘, 留在当前页签)
-    for (const id of ['matchNeedChips', 'ne-daily-chips', 'ne-fortune-chips', 'ne-read-chips', 'ne-dasha-chips', 'ne-ai-chips']) {
+    for (const id of ['matchNeedChips', 'ne-daily-chips', 'ne-fortune-chips', 'ne-read-chips', 'ne-dasha-chips', 'ne-ai-chips', 'ne-bala-chips']) {
       const el = $(id);
       if (el) el.innerHTML = list.length ? `<span class="prof-chips-label" style="width:100%">${L('或直接用已有档案：', 'Or use an existing profile:')}</span>` +
         list.map(p => `<button class="prof-chip" onclick="_openProfile('${p.id}',true,true)">${pname(p.name)}</button>`).join('') : '';
@@ -2763,7 +3328,7 @@ const WORLD_CITIES=[["Shanghai","CN",31.2222,121.4581,0],["Beijing","CN",39.9075
 
   /* ---------- 总渲染 ---------- */
   function renderAll() {
-    renderOverview(); renderChart(); renderTable(); renderAV(); renderDasha(); renderReading(); renderFortune(); renderDaily(); aiInit(); renderSky();
+    renderOverview(); renderChart(); renderTable(); renderShadbala(); renderAV(); renderDasha(); renderReading(); renderFortune(); renderDaily(); aiInit(); renderSky();
     $('matchResult').innerHTML = ''; // 换人重测时清空旧合盘
   }
 
@@ -2873,6 +3438,36 @@ const WORLD_CITIES=[["Shanghai","CN",31.2222,121.4581,0],["Beijing","CN",39.9075
     $('ptable').innerHTML = `<table><thead><tr><th>${L('星体', 'Planet')}</th><th>${L('星座', 'Sign')}</th><th>${L('度数', 'Degree')}</th><th>${L('宫位', 'House')}</th><th>${L('星宿', 'Nakshatra')}</th><th>${L('状态', 'State')}</th></tr></thead><tbody>
       <tr onclick="_concept('lagna')"><td>${L('Asc 上升', 'Asc')} <span class="qmark">?</span></td><td>${c.lagna.signName}</td><td>${c.lagna.deg}</td><td>${L('第1宫', 'House 1')}</td><td class="td-nak">${c.lagna.nakName}</td><td>—</td></tr>${rows}</tbody></table>
       <p class="muted-sm" style="margin-top:8px">${L('点击任意一行，看这颗星在你盘里的完整介绍。', 'Tap any row for the full reading of that planet in your chart.')}</p>`;
+  }
+
+  /* ---------- 六力 Shadbala ---------- */
+  function renderShadbala() {
+    const box = $('shadBox');
+    if (!box) return;
+    if (!CHART || !V.shadbala) { box.style.display = 'none'; return; }
+    box.style.display = '';
+    const sb = V.shadbala(CHART);
+    const order = sb.order || ['Sun', 'Moon', 'Mars', 'Mercury', 'Jupiter', 'Venus', 'Saturn'];
+    let bars = '';
+    for (const p of order) {
+      const r = sb[p];
+      const col = r.ratio >= 1 ? 'var(--good)' : r.ratio >= 0.85 ? 'var(--gold)' : 'var(--bad)';
+      const w = Math.min(100, Math.round(r.ratio / 1.6 * 100));
+      const tag = r.ratio >= 1 ? L('强', 'Strong') : r.ratio >= 0.85 ? L('中', 'OK') : L('弱', 'Weak');
+      bars += `<div class="av-row"><span class="av-h">${V.PLANET_GLYPH[p]} ${V.PLANET_CN[p]}</span><span class="av-track"><span class="av-fill" style="width:${w}%;background:${col}"></span></span><span class="av-n">${r.rupa}</span><span class="sb-tag" style="color:${col}">${tag}</span></div>`;
+    }
+    const comp = [['sthana', L('位置', 'Sthana')], ['kaala', L('时间', 'Kaala')], ['dig', L('方向', 'Dig')], ['cheshta', L('运动', 'Cheshta')], ['naisargika', L('自然', 'Naisarg')], ['drik', L('相位', 'Drik')]];
+    let grid = `<table><thead><tr><th>${L('行星', 'Planet')}</th>${comp.map(c => `<th>${c[1]}</th>`).join('')}<th>${L('及格', 'Req')}</th><th>Rupa</th></tr></thead><tbody>`;
+    for (const p of order) { const r = sb[p]; grid += `<tr><td>${V.PLANET_GLYPH[p]} ${V.PLANET_CN[p]}</td>${comp.map(c => `<td>${Math.round(r[c[0]])}</td>`).join('')}<td>${r.required}</td><td><b style="color:${r.ratio >= 1 ? 'var(--good)' : 'var(--bad)'}">${r.rupa}</b></td></tr>`; }
+    grid += '</tbody></table>';
+    const strongest = order[0], weakest = order[order.length - 1];
+    box.innerHTML = `
+      <h3 style="margin-bottom:4px">${L('💪 六力 Shadbala', '💪 Shadbala')}</h3>
+      <p class="muted-sm" style="margin-bottom:10px">${L('印占衡量一颗星"够不够力"的总评分——六类力相加（位置/时间/方向/运动/自然/相位），换算成 Rupa 与"及格线"比。达标=这颗星主管的事更兑现得了。', 'The classic gauge of whether a planet is "strong enough" — six strengths summed (positional / temporal / directional / motional / natural / aspectual), converted to Rupas and weighed against a required minimum. Meeting it means that planet can deliver what it governs.')}</p>
+      ${bars}
+      <p class="muted" style="margin-top:10px">${L(`💪 最有力：${V.PLANET_CN[strongest]}；最需借力：${V.PLANET_CN[weakest]}。`, `💪 Strongest: ${V.PLANET_CN[strongest]}; weakest: ${V.PLANET_CN[weakest]}.`)}</p>
+      <p class="muted-sm" style="margin-top:6px">${L('口径：Rupa ≥ 及格线为"强"（该星主管领域有底气）；接近为"中"；明显不足为"弱"（靠后天努力或其大运期借力）。', 'Rule of thumb: Rupa ≥ the required minimum = strong (that planet’s domain has backbone); close = OK; clearly short = weak (lean on effort or that planet’s dasha).')}</p>
+      <details style="margin-top:10px"><summary class="muted-sm" style="cursor:pointer">${L('▸ 展开六类力明细（单位 Virupa 虚波）', '▸ Show the six strengths in detail (virupas)')}</summary><div class="av-grid">${grid}</div></details>`;
   }
 
   /* ---------- 八分力 Ashtakavarga ---------- */
