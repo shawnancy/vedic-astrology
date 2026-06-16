@@ -30,6 +30,15 @@ h1 em{font-style:normal;background:linear-gradient(135deg,var(--brand),var(--bra
   border-radius:999px;padding:5px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;
   box-shadow:0 2px 8px rgba(108,92,231,.12);z-index:40}
 .lang-toggle:hover{border-color:var(--brand);background:var(--brand-bg)}
+.help-btn{position:absolute;top:16px;left:16px;background:#fff;border:1px solid var(--border);color:var(--brand);
+  border-radius:999px;padding:5px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;
+  box-shadow:0 2px 8px rgba(108,92,231,.12);z-index:40}
+.help-btn:hover{border-color:var(--brand);background:var(--brand-bg)}
+.guide h4{font-size:15px;color:var(--brand);margin:14px 0 6px}
+.guide ol,.guide ul{margin:0 0 4px 18px;font-size:14px;color:var(--text2);line-height:1.7}
+.guide li{margin-bottom:3px}
+.guide li b{color:var(--text)}
+.guide .step{background:var(--brand-bg);border-radius:12px;padding:10px 14px 6px;margin-bottom:8px}
 
 /* form */
 .card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:24px;margin-top:22px}
@@ -365,6 +374,7 @@ footer p{margin-bottom:6px}
 <div class="wrap">
   <header style="position:relative">
     <button id="langToggle" class="lang-toggle" onclick="window.setLang(window.LANG==='en'?'zh':'en')">EN</button>
+    <button class="help-btn" onclick="_help()" data-en="❓ Guide">❓ 指南</button>
     <div class="om">ॐ</div>
     <h1 data-en-html="Vedic Astrology <em>印占</em>">印占星盘 <em>Vedic Astrology</em></h1>
     <p class="subtitle" data-en="A Vedic (Indian) astrology tool based on the Lahiri sidereal zodiac — birth chart · 36-point synastry · personal fortune · today's fortune. Everything is computed locally in your browser; your birth data is never uploaded.">基于 Lahiri 恒星黄道的印度占星工具 —— 个人星盘 · 三十六分合盘 · 个人运势 · 今日运势。全部在你的浏览器本地计算，出生信息不会上传。</p>
@@ -3399,6 +3409,59 @@ const WORLD_CITIES=[["Shanghai","CN",31.2222,121.4581,0],["Beijing","CN",39.9075
     document.body.style.overflow = 'hidden';
   }
   window._closeModal = function () { $('modalWrap').style.display = 'none'; document.body.style.overflow = ''; };
+  window._help = function () {
+    showModal(L('使用指南', 'How to use'), L(`<div class="guide">
+      <h4>🚀 三步上手</h4>
+      <div class="step"><b>1. 填出生信息</b><ul><li>姓名可选，性别（合盘按此分男女方）</li><li>公历生日 + 出生时间（越准越好；<b>不知道时辰</b>就勾"时辰不确定"，按中午估算）</li><li>出生地：中国选省市；<b>海外/其他城市</b>点开后直接<b>搜城市名</b>（如 New York / Tokyo），经纬度时区自动带出</li></ul></div>
+      <div class="step"><b>2. 点「排盘」</b><ul><li>「星盘」页看概览（上升/日月/星宿，点卡片看含义）+ 命盘图 + 行星表（<b>点任意一行</b>看这颗星的详解）</li></ul></div>
+      <div class="step"><b>3. 想看啥点对应页签</b><ul><li>想直接问 → 🤖问AI；想看今天宜忌 → 🌞今日运势</li></ul></div>
+      <h4>📑 九个页签都是啥</h4>
+      <ul>
+        <li>🪔 <b>星盘</b>：本命盘 + 顶部下拉切 16 张分盘（D1本命/D9婚姻/D10事业…）+ 行星表（含 KP 子主星）</li>
+        <li>🤖 <b>问AI</b>：用大白话问性格/事业/婚恋/财运/今天，本地即时答（不联网）</li>
+        <li>💞 <b>合盘</b>：填对方生日，出三十六分合婚 + 多维契合度</li>
+        <li>👤 <b>个人中心</b>：保存/切换档案（只存在你本机浏览器，发朋友各存各的）</li>
+        <li>🌞 <b>今日运势</b>：今日宜忌 + 五肢黄历(Yoga/Karana择吉) + 未来7天 + 梵歌偈颂</li>
+        <li>📈 <b>个人运势</b>：当前大运基调 + 木星/土星/罗睺行运</li>
+        <li>📜 <b>解读</b>：上升/月亮/瑜伽格局/九曜落宫 全文解读</li>
+        <li>⏳ <b>大运</b>：三套切换（Vimshottari/Ashtottari/Yogini）交叉看时机，Yogini 每段带吉凶</li>
+        <li>💪 <b>力量</b>：六力 Shadbala（每颗星够不够力）+ 八分力 Ashtakavarga（12 宫强度）</li>
+      </ul>
+      <h4>💡 小贴士</h4>
+      <ul>
+        <li>右上 <b>EN/中</b> 一键中英切换；<b>💾 保存档案</b> 下次打开一键召回</li>
+        <li>页面里几乎任何<b>卡片/行星/宫位/概念</b>都能点开看解释</li>
+        <li>全部在你浏览器<b>本地计算，出生信息不上传</b></li>
+      </ul>
+      <h4>🔬 给懂行的</h4>
+      <p style="font-size:13px;color:var(--muted)">16 分盘 Shodasvarga、Ashtakavarga、Shadbala 六力、KP 子主星、行星 Avastha、Panchanga 五肢、三套 Nakshatra 大运——计算对标 Jagannatha Hora，行星位置 vs Swiss Ephemeris 误差 &lt; 0.4′。</p>
+    </div>`, `<div class="guide">
+      <h4>🚀 Get started in 3 steps</h4>
+      <div class="step"><b>1. Enter birth details</b><ul><li>Name optional; gender (sets the male/female side in synastry)</li><li>Gregorian date + birth time (the more precise the better; if you <b>don't know the time</b>, tick "birth time unknown" for a noon estimate)</li><li>Birth place: tick <b>Overseas / other city</b> and just <b>search the city name</b> (e.g. New York / Tokyo) — coordinates & time zone fill in automatically</li></ul></div>
+      <div class="step"><b>2. Tap "Cast chart"</b><ul><li>The <b>Chart</b> tab shows the overview (tap cards for meaning), the chart diagram, and the planet table (<b>tap any row</b> for that planet's full reading)</li></ul></div>
+      <div class="step"><b>3. Pick a tab for what you want</b><ul><li>Just ask → 🤖 Ask AI; today's do/don't → 🌞 Today</li></ul></div>
+      <h4>📑 What the nine tabs do</h4>
+      <ul>
+        <li>🪔 <b>Chart</b>: birth chart + a dropdown to switch 16 divisional charts (D1/D9 marriage/D10 career…) + planet table (with KP sub lord)</li>
+        <li>🤖 <b>Ask AI</b>: ask in plain words about character / career / love / wealth / today — answered instantly on-device (offline)</li>
+        <li>💞 <b>Synastry</b>: enter a partner's birth data for a 36-point match + multi-dimensional compatibility</li>
+        <li>👤 <b>Profiles</b>: save / switch charts (stored only in your own browser; friends keep their own)</li>
+        <li>🌞 <b>Today</b>: today's do/don't + the five-limb almanac (Yoga/Karana timing) + 7-day forecast + a Gita verse</li>
+        <li>📈 <b>Fortune</b>: your current Dasha tone + Jupiter/Saturn/Rahu transits</li>
+        <li>📜 <b>Reading</b>: full reading of Ascendant / Moon / yogas / the nine planets by house</li>
+        <li>⏳ <b>Dasha</b>: switch three systems (Vimshottari/Ashtottari/Yogini) to cross-check timing; Yogini labels each period auspicious/inauspicious</li>
+        <li>💪 <b>Strength</b>: Shadbala (is each planet strong enough) + Ashtakavarga (12-house strength)</li>
+      </ul>
+      <h4>💡 Tips</h4>
+      <ul>
+        <li>The top-right <b>language button</b> toggles English ⇄ Chinese; <b>💾 Save profile</b> recalls a chart in one tap next time</li>
+        <li>Almost any <b>card / planet / house / concept</b> on the page can be tapped for an explanation</li>
+        <li>Everything is computed <b>locally in your browser; birth data is never uploaded</b></li>
+      </ul>
+      <h4>🔬 For the initiated</h4>
+      <p style="font-size:13px;color:var(--muted)">16 divisional charts (Shodasvarga), Ashtakavarga, Shadbala, KP sub-lords, planetary Avasthas, the five-limb Panchanga, and three nakshatra dasha systems — calculations benchmarked against Jagannatha Hora, planet positions within 0.4′ of Swiss Ephemeris.</p>
+    </div>`));
+  };
   window._concept = function (key) {
     const [t, d] = CONCEPT_INTRO[key];
     let extra = '';
