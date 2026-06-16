@@ -592,6 +592,8 @@ footer p{margin-bottom:6px}
       <div class="nc-chips" id="ne-dasha-chips"></div>
     </div>
     <div class="card" id="dashaCard" style="display:none">
+      <div class="chart-tools" id="dashaSysSel"></div>
+      <div id="dashaSysNote" class="muted-sm" style="margin-bottom:10px"></div>
       <div id="dashaNow"></div>
       <div id="dashaList" style="margin-top:12px"></div>
       <p class="muted-sm" style="margin-top:10px" data-en="Tap any Dasha to expand its reading and the nine Antardasha sub-periods. The combination of the birth-chart condition of the &quot;Dasha lord + sub-period lord&quot; sets the tone of that span.">点击任意大运可展开该周期的解读与九段子限（Antardasha）。"大运主星 + 子限主星"的本命状态组合，决定该时段的吉凶底色。</p>
@@ -1172,6 +1174,59 @@ return new kd(this.curr.time,a,b)};$jscomp.global.Object.defineProperties(H.prot
     return { dashas, balanceYears, startLord: lord0 };
   }
 
+  /* ===== 其他大运: Yogini(36年/8女神) + Ashtottari(108年/8星无计都). 算法/起运/年长校验自 PyJHora ===== */
+  const SID_YEAR = 365.256364; // PyJHora const.sidereal_year (Yogini/Ashtottari 用恒星年)
+  // Yogini: nak(1..27)→主星循环 [火水土金罗月日木]; 年数 月1日2木3火4水5土6金7罗8 (共36)
+  const YOGINI_CYCLE = ['Mars', 'Mercury', 'Saturn', 'Venus', 'Rahu', 'Moon', 'Sun', 'Jupiter'];
+  const YOGINI_YEARS = { Moon: 1, Sun: 2, Jupiter: 3, Mars: 4, Mercury: 5, Saturn: 6, Venus: 7, Rahu: 8 };
+  const YOGINI_ORDER = ['Moon', 'Sun', 'Jupiter', 'Mars', 'Mercury', 'Saturn', 'Venus', 'Rahu'];
+  const YOGINI_NAME = { Moon: 'Mangala', Sun: 'Pingala', Jupiter: 'Dhanya', Mars: 'Bhramari', Mercury: 'Bhadrika', Saturn: 'Ulka', Venus: 'Siddha', Rahu: 'Sankata' };
+  const YOGINI_GOOD = { Moon: true, Sun: false, Jupiter: true, Mars: false, Mercury: true, Saturn: false, Venus: true, Rahu: false };
+  // Ashtottari (seed_star=6/Ardra): lord→[起宿,止宿] + 年数 (日6月15火8水17土10木19罗12金21 = 108)
+  const ASHT_YEARS = { Sun: 6, Moon: 15, Mars: 8, Mercury: 17, Saturn: 10, Jupiter: 19, Rahu: 12, Venus: 21 };
+  const ASHT_ORDER = ['Sun', 'Moon', 'Mars', 'Mercury', 'Saturn', 'Jupiter', 'Rahu', 'Venus'];
+  const ASHT_RANGE = { Sun: [6, 9], Moon: [10, 12], Mars: [13, 16], Mercury: [17, 19], Saturn: [20, 22], Jupiter: [23, 25], Rahu: [26, 2], Venus: [3, 5] };
+
+  // equalAntar: Yogini 子限均分(maha/8); Ashtottari/Vimshottari 按年数比例
+  function buildDasha(birthMs, order, years, startLord, elapsedYears, totalYears, equalAntar) {
+    const balanceYears = years[startLord] - elapsedYears;
+    const dashas = [];
+    let t = birthMs - elapsedYears * SID_YEAR * 86400000;
+    const si = order.indexOf(startLord);
+    for (let i = 0; i < order.length; i++) {
+      const lord = order[(si + i) % order.length];
+      const yr = years[lord];
+      const start = t, end = t + yr * SID_YEAR * 86400000;
+      const antars = [];
+      let at = start;
+      for (let j = 0; j < order.length; j++) {
+        const al = order[(si + i + j) % order.length];
+        const adur = (equalAntar ? yr / order.length : yr * years[al] / totalYears) * SID_YEAR * 86400000;
+        antars.push({ lord: al, start: at, end: at + adur });
+        at += adur;
+      }
+      dashas.push({ lord, start, end, antars });
+      t = end;
+    }
+    return { dashas, balanceYears, startLord };
+  }
+  function yoginiDasha(moonSidLon, birthMs) {
+    const nk = nakOf(moonSidLon), nak1 = nk.idx + 1;
+    const lord = YOGINI_CYCLE[(nak1 - 1) % 8];
+    return buildDasha(birthMs, YOGINI_ORDER, YOGINI_YEARS, lord, nk.frac * YOGINI_YEARS[lord], 36, true);
+  }
+  function ashtottariDasha(moonSidLon, birthMs) {
+    const nk = nakOf(moonSidLon), nak1 = nk.idx + 1;
+    let lord, sb, span;
+    for (const L of ASHT_ORDER) {
+      const [s, e] = ASHT_RANGE[L];
+      const within = e >= s ? (nak1 >= s && nak1 <= e) : (nak1 >= s || nak1 <= e);
+      if (within) { lord = L; sb = s; span = e >= s ? e - s + 1 : (e + 27) - s + 1; break; }
+    }
+    const starsElapsed = ((nak1 - sb + 27) % 27) + nk.frac;
+    return buildDasha(birthMs, ASHT_ORDER, ASHT_YEARS, lord, starsElapsed / span * ASHT_YEARS[lord], 108, false);
+  }
+
   // ---------- 主计算 ----------
   function compute(input) {
     const { year, month, day, hour, minute, tz, lat, lon } = input;
@@ -1215,7 +1270,7 @@ return new kd(this.curr.time,a,b)};$jscomp.global.Object.defineProperties(H.prot
     for (const p of PLANETS) planets[p].house = ((planets[p].sign - lagna.sign + 12) % 12) + 1;
 
     const dasha = vimshottari(planets.Moon.lon, birthMs);
-    return { input, ayanamsa: ayan, jd: jdUT(time), lagna, planets, dasha };
+    return { input, ayanamsa: ayan, jd: jdUT(time), birthMs, lagna, planets, dasha };
   }
 
   // 当前行运 (gochara): 用同一引擎算当下行星
@@ -2062,7 +2117,7 @@ return new kd(this.curr.time,a,b)};$jscomp.global.Object.defineProperties(H.prot
     return dkf;
   }
 
-  return { compute, shadbala, transitsNow, daily, publicPanchang, ashtakoota, manglik, extraKutas, overlayHouses, interAspects, d9Marriage, vashyaOf, ayanamsa, vargaSign, navamsaSign, ashtakavarga, yogaOf, karanaOf, SIGNS, SIGNS_SA, NAKSHATRAS, PLANETS, PLANET_CN, PLANET_GLYPH, SIGN_LORD, DASHA_LORDS, DASHA_YEARS, norm360, signOf, nakOf, fmtDeg, YONI, YONI_CN, GANA, NADI, TARA_NAMES };
+  return { compute, shadbala, transitsNow, daily, publicPanchang, ashtakoota, manglik, extraKutas, overlayHouses, interAspects, d9Marriage, vashyaOf, ayanamsa, vargaSign, navamsaSign, ashtakavarga, yogaOf, karanaOf, yoginiDasha, ashtottariDasha, YOGINI_NAME, YOGINI_GOOD, SIGNS, SIGNS_SA, NAKSHATRAS, PLANETS, PLANET_CN, PLANET_GLYPH, SIGN_LORD, DASHA_LORDS, DASHA_YEARS, norm360, signOf, nakOf, fmtDeg, YONI, YONI_CN, GANA, NADI, TARA_NAMES };
 }));
 
 </script>
@@ -3523,24 +3578,65 @@ const WORLD_CITIES=[["Shanghai","CN",31.2222,121.4581,0],["Beijing","CN",39.9075
       <details style="margin-top:10px"><summary class="muted-sm" style="cursor:pointer">${L('▸ 展开七政逐宫明细（Bhinnashtakavarga）', '▸ Show each planet’s Bhinnashtakavarga')}</summary><div class="av-grid">${grid}</div></details>`;
   }
 
-  /* ---------- 大运 ---------- */
+  /* ---------- 大运 (三套: Vimshottari/Ashtottari/Yogini) ---------- */
   const fmtD = ms => { const d = new Date(ms); return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}`; };
+  let dashaSys = 'vim';
+  // Yogini 八女神: [女神名, 中文吉凶+简评, 英文]
+  const YOGINI_INFO = {
+    Moon: ['Mangala', '吉 · 喜庆顺遂', 'Auspicious · joy & ease'],
+    Sun: ['Pingala', '凶 · 烈而耗', 'Harsh · intense & draining'],
+    Jupiter: ['Dhanya', '大吉 · 富足扩展', 'Very auspicious · abundance'],
+    Mars: ['Bhramari', '凶 · 动荡奔波', 'Difficult · turbulence & travel'],
+    Mercury: ['Bhadrika', '吉 · 稳步上行', 'Auspicious · steady progress'],
+    Saturn: ['Ulka', '凶 · 艰难磨砺', 'Difficult · hardship & grind'],
+    Venus: ['Siddha', '大吉 · 成就如愿', 'Very auspicious · success'],
+    Rahu: ['Sankata', '大凶 · 危厄考验', 'Very difficult · crisis & trial'],
+  };
+  const SYS = { // [中文名, 英文名, 总年数]
+    vim: ['Vimshottari 大运', 'Vimshottari', 120],
+    asht: ['Ashtottari 大运', 'Ashtottari', 108],
+    yog: ['Yogini 大运', 'Yogini', 36],
+  };
+  const dashaSetOf = sys => sys === 'yog' ? V.yoginiDasha(CHART.planets.Moon.lon, CHART.birthMs)
+    : sys === 'asht' ? V.ashtottariDasha(CHART.planets.Moon.lon, CHART.birthMs) : CHART.dasha;
+  const yrsOf = d => Math.round((d.end - d.start) / (365.25 * 86400000));
+  const findCur = set => { const now = Date.now(); for (const d of set.dashas) if (now >= d.start && now < d.end) for (const a of d.antars) if (now >= a.start && now < a.end) return { maha: d, antar: a }; return null; };
+  // 一段 maha 的标题与简介(按系统)
+  function mahaLabel(d) {
+    if (dashaSys === 'yog') { const yi = YOGINI_INFO[d.lord]; return `${yi[0]} (${V.PLANET_CN[d.lord]})`; }
+    return L(`${V.PLANET_CN[d.lord]}大运`, `${V.PLANET_CN[d.lord]} Dasha`);
+  }
+  function mahaIntro(d) {
+    if (dashaSys === 'vim') return DASHA_TEXT[d.lord];
+    if (dashaSys === 'yog') { const yi = YOGINI_INFO[d.lord]; return L(`${yi[0]} 女神（${V.PLANET_CN[d.lord]}主）：${yi[1]}。这段时间的吉凶基调由该女神决定，${V.PLANET_CN[d.lord]}主管的领域（性格/事业/财/情按本命盘）成为主题。`, `Yogini ${yi[0]} (ruled by ${V.PLANET_CN[d.lord]}): ${yi[2]}. This goddess sets the tone of the period, and the affairs ${V.PLANET_CN[d.lord]} governs in your chart take center stage.`); }
+    return L(`这段时间由 ${V.PLANET_CN[d.lord]} 主管（Ashtottari 体系，权重与 Vimshottari 不同，用作第二意见）。${V.PLANET_CN[d.lord]} 主管的领域成为人生主题——结合它在你本命盘的旺衰看吉凶。`, `Ruled by ${V.PLANET_CN[d.lord]} (in the Ashtottari system, which weights planets differently from Vimshottari — used as a second opinion). The affairs ${V.PLANET_CN[d.lord]} governs become the life theme; read its strength in your chart for the verdict.`);
+  }
+  window._setDashaSys = s => { dashaSys = s; renderDasha(); };
   function renderDasha() {
     const c = CHART, now = Date.now();
-    $('dashaList').innerHTML = c.dasha.dashas.map((d, i) => {
+    const set = dashaSetOf(dashaSys);
+    // 系统切换器
+    $('dashaSysSel').innerHTML = Object.keys(SYS).map(s => `<button class="ctab ${s === dashaSys ? 'on' : ''}" onclick="_setDashaSys('${s}')">${_en() ? SYS[s][1] : SYS[s][0]}</button>`).join('');
+    $('dashaSysNote').textContent = dashaSys === 'vim' ? L('Vimshottari（120年）：印占主用大运，最常看。', 'Vimshottari (120 yrs): the primary, most-used dasha system.')
+      : dashaSys === 'asht' ? L('Ashtottari（108年，8星无计都）：第二意见，对罗睺权重不同，用来交叉印证 timing。', 'Ashtottari (108 yrs, 8 planets without Ketu): a second opinion that weights Rahu differently — used to cross-confirm timing.')
+        : L('Yogini（36年，8女神）：周期短、近期判断更细，每段自带吉凶（Siddha/Dhanya/Bhadrika吉，Sankata/Ulka凶）。', 'Yogini (36 yrs, 8 goddesses): short cycle, finer for near-term reads; each period carries its own auspicious/inauspicious nature.');
+    $('dashaList').innerHTML = set.dashas.map(d => {
       const cur = now >= d.start && now < d.end, past = now >= d.end;
+      const ygBad = dashaSys === 'yog' && !V.YOGINI_GOOD[d.lord];
       const antars = d.antars.map(a => {
         const acur = now >= a.start && now < a.end;
-        return `<div class="antar ${acur ? 'antar-cur' : ''}">${V.PLANET_CN[d.lord]}/${V.PLANET_CN[a.lord]} <span>${fmtD(a.start)} – ${fmtD(a.end)}</span>${acur ? L('<b>← 现在</b>', '<b>← now</b>') : ''}</div>`;
+        const al = dashaSys === 'yog' ? YOGINI_INFO[a.lord][0] : V.PLANET_CN[a.lord];
+        const ml = dashaSys === 'yog' ? YOGINI_INFO[d.lord][0] : V.PLANET_CN[d.lord];
+        return `<div class="antar ${acur ? 'antar-cur' : ''}">${ml}/${al} <span>${fmtD(a.start)} – ${fmtD(a.end)}</span>${acur ? L('<b>← 现在</b>', '<b>← now</b>') : ''}</div>`;
       }).join('');
       return `<div class="dasha ${cur ? 'dasha-cur' : past ? 'dasha-past' : ''}">
         <button class="dasha-head" onclick="this.parentNode.classList.toggle('open')">
-          <span class="dl">${L(`${V.PLANET_CN[d.lord]}大运`, `${V.PLANET_CN[d.lord]} Dasha`)}</span><span class="dy">${L(`${V.DASHA_YEARS[d.lord]}年`, `${V.DASHA_YEARS[d.lord]} yrs`)}</span>
+          <span class="dl">${mahaLabel(d)}</span><span class="dy">${L(`${yrsOf(d)}年`, `${yrsOf(d)} yrs`)}${ygBad ? ` <span style="color:var(--bad)">⚠</span>` : ''}</span>
           <span class="dt">${fmtD(d.start)} – ${fmtD(d.end)}</span>${cur ? `<span class="tag tag-good">${L('进行中', 'current')}</span>` : ''}<span class="arrow">▾</span>
-        </button><div class="antars"><p class="antar-intro">${DASHA_TEXT[d.lord]}</p>${antars}</div></div>`;
+        </button><div class="antars"><p class="antar-intro">${mahaIntro(d)}</p>${antars}</div></div>`;
     }).join('');
-    const cur = currentDasha(c);
-    $('dashaNow').innerHTML = cur ? `<p>${DASHA_TEXT[cur.maha.lord]}</p><p class="muted">${L(`当前子限 ${V.PLANET_CN[cur.maha.lord]}/${V.PLANET_CN[cur.antar.lord]}（${fmtD(cur.antar.start)} – ${fmtD(cur.antar.end)}）。`, `Current sub-period ${V.PLANET_CN[cur.maha.lord]}/${V.PLANET_CN[cur.antar.lord]} (${fmtD(cur.antar.start)} – ${fmtD(cur.antar.end)}).`)}</p>` : `<p class="muted">${L('出生信息超出 120 年大运范围。', 'Birth data is outside the 120-year Dasha range.')}</p>`;
+    const cur = findCur(set);
+    $('dashaNow').innerHTML = cur ? `<p>${mahaIntro(cur.maha)}</p><p class="muted">${L(`当前子限 ${dashaSys === 'yog' ? YOGINI_INFO[cur.maha.lord][0] + '/' + YOGINI_INFO[cur.antar.lord][0] : V.PLANET_CN[cur.maha.lord] + '/' + V.PLANET_CN[cur.antar.lord]}（${fmtD(cur.antar.start)} – ${fmtD(cur.antar.end)}）。`, `Current sub-period ${dashaSys === 'yog' ? YOGINI_INFO[cur.maha.lord][0] + '/' + YOGINI_INFO[cur.antar.lord][0] : V.PLANET_CN[cur.maha.lord] + '/' + V.PLANET_CN[cur.antar.lord]} (${fmtD(cur.antar.start)} – ${fmtD(cur.antar.end)}).`)}</p>` : `<p class="muted">${L('当前时间超出该大运体系范围。', 'The current time is outside this dasha system’s range.')}</p>`;
   }
 
   /* ---------- 个人运势 ---------- */
