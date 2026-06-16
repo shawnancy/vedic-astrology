@@ -1075,6 +1075,23 @@ return new kd(this.curr.time,a,b)};$jscomp.global.Object.defineProperties(H.prot
   }
   function navamsaSign(lon) { return Math.floor(norm360(lon) / (10 / 3)) % 12; }
 
+  // Panchanga 第4/5肢: Yoga(日+月恒星经度, 27) + Karana(月-日, 60→11类). 名表/序号校验自 PyJHora(JHora同源).
+  const YOGA_NAMES = ['Vishkambha', 'Priti', 'Ayushman', 'Saubhagya', 'Shobhana', 'Atiganda', 'Sukarma', 'Dhriti', 'Shula', 'Ganda', 'Vriddhi', 'Dhruva', 'Vyaghata', 'Harshana', 'Vajra', 'Siddhi', 'Vyatipata', 'Variyana', 'Parigha', 'Shiva', 'Siddha', 'Sadhya', 'Shubha', 'Shukla', 'Brahma', 'Indra', 'Vaidhriti'];
+  const YOGA_BAD = [1, 6, 9, 10, 13, 15, 17, 19, 27]; // 传统不吉(1-indexed); 17 Vyatipata / 27 Vaidhriti 最凶
+  const KARANA_MOVABLE = ['Bava', 'Balava', 'Kaulava', 'Taitila', 'Gara', 'Vanija', 'Vishti'];
+  function yogaOf(sunLon, moonLon) {
+    const idx = Math.floor(norm360(sunLon + moonLon) / (360 / 27)) + 1; // 1..27
+    return { idx, name: YOGA_NAMES[idx - 1], bad: YOGA_BAD.includes(idx), worst: idx === 17 || idx === 27 };
+  }
+  function karanaOf(sunLon, moonLon) {
+    const idx = Math.floor(norm360(moonLon - sunLon) / 6) + 1; // 1..60
+    let name;
+    if (idx === 1) name = 'Kimstughna';
+    else if (idx >= 58) name = ['Shakuni', 'Chatushpada', 'Naga'][idx - 58];
+    else name = KARANA_MOVABLE[(idx - 2) % 7];
+    return { idx, name, bad: name === 'Vishti', fixed: idx === 1 || idx >= 58 };
+  }
+
   // 通用分盘 (Shodasvarga 16 法, BPHS/Parashara 规则). 返回该分盘里行星所落星座(0=白羊).
   // 锚点: vargaSign(lon,9) === navamsaSign(lon) (D9 已被 SwissEph 校准, 测试断言).
   function vargaSign(lon, D) {
@@ -1431,6 +1448,7 @@ return new kd(this.curr.time,a,b)};$jscomp.global.Object.defineProperties(H.prot
       tithiGroup: (tithiNum % 15 + 1 - 1) % 5,
       varaLord: ['Sun', 'Moon', 'Mars', 'Mercury', 'Jupiter', 'Venus', 'Saturn'][d.getDay()],
       sunSignName: SIGNS[signOf(sunSid)],
+      yoga: yogaOf(sunSid, moonSid), karana: karanaOf(sunSid, moonSid),
     };
   }
   function daily(natalChart, nowDate) {
@@ -1461,6 +1479,7 @@ return new kd(this.curr.time,a,b)};$jscomp.global.Object.defineProperties(H.prot
       tara: taraIdx, taraName: TARA_NAMES[taraIdx], taraQuality: TARA_QUALITY[taraIdx],
       chandraHouse, chandraGood, tithiNum, paksha, tithiDay, tithiGroup,
       lagnaHouse, varaLord, rahuKalam: rk, stars: score,
+      yoga: yogaOf(sunSid, moonSid), karana: karanaOf(sunSid, moonSid),
     };
   }
 
@@ -2043,7 +2062,7 @@ return new kd(this.curr.time,a,b)};$jscomp.global.Object.defineProperties(H.prot
     return dkf;
   }
 
-  return { compute, shadbala, transitsNow, daily, publicPanchang, ashtakoota, manglik, extraKutas, overlayHouses, interAspects, d9Marriage, vashyaOf, ayanamsa, vargaSign, navamsaSign, ashtakavarga, SIGNS, SIGNS_SA, NAKSHATRAS, PLANETS, PLANET_CN, PLANET_GLYPH, SIGN_LORD, DASHA_LORDS, DASHA_YEARS, norm360, signOf, nakOf, fmtDeg, YONI, YONI_CN, GANA, NADI, TARA_NAMES };
+  return { compute, shadbala, transitsNow, daily, publicPanchang, ashtakoota, manglik, extraKutas, overlayHouses, interAspects, d9Marriage, vashyaOf, ayanamsa, vargaSign, navamsaSign, ashtakavarga, yogaOf, karanaOf, SIGNS, SIGNS_SA, NAKSHATRAS, PLANETS, PLANET_CN, PLANET_GLYPH, SIGN_LORD, DASHA_LORDS, DASHA_YEARS, norm360, signOf, nakOf, fmtDeg, YONI, YONI_CN, GANA, NADI, TARA_NAMES };
 }));
 
 </script>
@@ -2975,6 +2994,10 @@ const WORLD_CITIES=[["Shanghai","CN",31.2222,121.4581,0],["Beijing","CN",39.9075
   const SIGN_SHORT = new Proxy(SIGN_SHORT_ZH, { get: (_, k) => (_en() ? SIGN_SHORT_EN : SIGN_SHORT_ZH)[k] });
   const dg = d => window.i18n.dig(d); // dignity/状态 显示翻译(逻辑键仍中文)
   const pname = n => n === '未命名' ? L('未命名', 'Unnamed') : n; // 档案名显示(哨兵键翻译)
+  // Panchanga 第4/5肢吉凶标签
+  const yogaNat = y => y.worst ? L('大凶', 'Very inauspicious') : y.bad ? L('凶', 'Inauspicious') : L('吉', 'Auspicious');
+  const karNat = k => k.bad ? L('凶·Bhadra', 'Inauspicious · Bhadra') : k.fixed ? L('平', 'Neutral') : L('吉', 'Auspicious');
+  const ykCol = bad => bad ? 'var(--bad)' : 'var(--good)';
   const selTz = {}, selCity = {}; // 城市搜索选中的 IANA 时区 / 显示名(按 prefix '' 与 'b')
   let CHART = null;
   let chartV = 1, chartStyle = 'N';
@@ -3600,6 +3623,11 @@ const WORLD_CITIES=[["Shanghai","CN",31.2222,121.4581,0],["Beijing","CN",39.9075
         <div class="yiji yiji-good"><div class="yj-t">${L('✅ 今日宜', '✅ Favorable today')}</div>${yj.good.map(x => `<span class="yj-chip">${x}</span>`).join('')}</div>
         <div class="yiji yiji-bad"><div class="yj-t">${L('🚫 今日忌', '🚫 Avoid today')}</div>${yj.bad.map(x => `<span class="yj-chip">${x}</span>`).join('')}</div>
       </div>
+      <div class="f-card"><h4>${L('🪔 今日五肢 Panchanga（印度黄历）', '🪔 Today’s Panchanga (the five limbs)')}</h4>
+        <p class="muted-sm">${L('正宗印度历用五肢定一天性质：月相日 Tithi · 星期 Vara · 月宿 Nakshatra · 瑜伽 Yoga · 行 Karana。', 'A true Vedic almanac sets a day’s quality by five limbs: Tithi (lunar day) · Vara (weekday) · Nakshatra · Yoga · Karana.')}</p>
+        <p style="margin-top:6px">· <b>Tithi</b>: ${L(`${d.paksha.slice(0, 2)} ${d.tithiDay}`, `${window.i18n.pakshaShort(d.paksha)} ${d.tithiDay}`)} &nbsp;·&nbsp; <b>Nakshatra</b>: ${d.moonNakName.split(' ').slice(-1)[0]}</p>
+        <p style="margin-top:4px">· <b>Yoga</b>: ${d.yoga.name} <span style="color:${ykCol(d.yoga.bad)}">(${yogaNat(d.yoga)})</span> &nbsp;·&nbsp; <b>Karana</b>: ${d.karana.name} <span style="color:${ykCol(d.karana.bad)}">(${karNat(d.karana)})</span></p>
+        <p class="${(d.yoga.bad || d.karana.bad) ? 'warn' : 'muted'}" style="margin-top:6px">${(d.yoga.bad || d.karana.bad) ? L('⚠️ 今日 Yoga/Karana 含不吉项：签约、开业、动土、远行、婚嫁等大事建议避开或另择吉时（日常事务无碍）。', '⚠️ Today’s Yoga/Karana includes an inauspicious limb: for big undertakings (signing, opening, ground-breaking, long travel, weddings) pick another auspicious time; everyday tasks are fine.') : L('✅ 今日 Yoga 与 Karana 皆吉，办正事择时无忌。', '✅ Today’s Yoga and Karana are both auspicious — a clear day for important matters.')}</p></div>
       <div class="f-card"><h4>${L('📿 星宿吉凶 Tara Bala（核心指标）', '📿 Nakshatra Fortune · Tara Bala (core indicator)')}</h4>
         <p>${L(`今日月亮行经 <b>${d.moonNakName}</b>，自你的出生星宿（${c.planets.Moon.nakName}）数起落在第 <b>${d.tara + 1} 宿位「${d.taraName}」</b>。`, `Today the Moon transits <b>${d.moonNakName}</b>, which counting from your birth nakshatra (${c.planets.Moon.nakName}) falls on the <b>${d.tara + 1}th tara position "${d.taraName}"</b>.`)}</p>
         <p>${TARA_ADVICE[d.tara]}</p></div>
@@ -3670,6 +3698,8 @@ const WORLD_CITIES=[["Shanghai","CN",31.2222,121.4581,0],["Beijing","CN",39.9075
         <div class="sky-item"><div class="sky-k">${L('月亮 / 太阳', 'Moon / Sun')}</div><div class="sky-v">${pp.moonSignName.replace('座', '')} / ${pp.sunSignName.replace('座', '')}</div></div>
         <div class="sky-item"><div class="sky-k">${L('月相', 'Lunar Phase')}</div><div class="sky-v">${L(`${pp.paksha.slice(0, 2)}${pp.tithiDay}日 · ${tgName.split(' ')[0]}`, `${window.i18n.pakshaShort(pp.paksha)} ${pp.tithiDay} · ${tgName.split(' ')[0]}`)}</div></div>
         <div class="sky-item"><div class="sky-k">${L('值日星 / 幸运色', 'Day-lord / Lucky Color')}</div><div class="sky-v">${vi[0]} / ${vi[1].split('/')[0]}</div></div>
+        <div class="sky-item"><div class="sky-k">${L('瑜伽 Yoga', 'Yoga')}</div><div class="sky-v">${pp.yoga.name} <span style="font-size:11px;color:${ykCol(pp.yoga.bad)}">${yogaNat(pp.yoga)}</span></div></div>
+        <div class="sky-item"><div class="sky-k">${L('行 Karana', 'Karana')}</div><div class="sky-v">${pp.karana.name} <span style="font-size:11px;color:${ykCol(pp.karana.bad)}">${karNat(pp.karana)}</span></div></div>
       </div>
       <div class="sky-cta">${CHART ? L(`这是公共天时。你的专属吉凶 → <button onclick="_tab('daily')">看今日运势</button>`, `This is the shared sky. Your personal fortune → <button onclick="_tab('daily')">See today's fortune</button>`) : L(`天时是大家共享的，吉凶因人而异 —— 排盘后可看你的专属今日运势、未来7天吉凶。`, `The sky is shared by everyone, but fortune varies by person — cast your chart to see your personal today's fortune and 7-day forecast.`)}</div>`;
   }
@@ -4006,7 +4036,8 @@ const WORLD_CITIES=[["Shanghai","CN",31.2222,121.4581,0],["Beijing","CN",39.9075
     const c = CHART, P = c.planets;
     let html = '';
     html += sec(L('🌅 上升与人生底色', '🌅 Ascendant & Life Foundation'), `<p>${LAGNA_TEXT[c.lagna.sign]}</p><p class="muted">${L(`上升主星${V.PLANET_CN[V.SIGN_LORD[c.lagna.sign]]}落在第${P[V.SIGN_LORD[c.lagna.sign]].house}宫（${HOUSE_THEME[P[V.SIGN_LORD[c.lagna.sign]].house - 1].split('·')[0]}），这个宫位的事务是你人生剧本的主舞台。`, `The ascendant lord ${V.PLANET_CN[V.SIGN_LORD[c.lagna.sign]]} falls in house ${P[V.SIGN_LORD[c.lagna.sign]].house} (${HOUSE_THEME[P[V.SIGN_LORD[c.lagna.sign]].house - 1].split('·')[0]}); the affairs of this house are the main stage of your life story.`)}</p>`);
-    html += sec(L('🌙 月亮与内在世界', '🌙 Moon & Inner World'), `<p>${MOON_SIGN_TEXT[P.Moon.sign]}</p><p>${L(`印占以月亮为"心"。<b>出生星宿：${P.Moon.nakName}（第${P.Moon.pada}步）</b>`, `Vedic astrology treats the Moon as the "heart". <b>Birth nakshatra: ${P.Moon.nakName} (pada ${P.Moon.pada})</b>`)}</p><p>${NAK_TEXT[P.Moon.nak]}</p>`);
+    const jy = V.yogaOf(P.Sun.lon, P.Moon.lon);
+    html += sec(L('🌙 月亮与内在世界', '🌙 Moon & Inner World'), `<p>${MOON_SIGN_TEXT[P.Moon.sign]}</p><p>${L(`印占以月亮为"心"。<b>出生星宿：${P.Moon.nakName}（第${P.Moon.pada}步）</b>`, `Vedic astrology treats the Moon as the "heart". <b>Birth nakshatra: ${P.Moon.nakName} (pada ${P.Moon.pada})</b>`)}</p><p>${NAK_TEXT[P.Moon.nak]}</p><p class="muted-sm">${L(`生时瑜伽 Janma Yoga：<b>${jy.name}</b>（${yogaNat(jy)}）—— 出生时日月合成的能量底色，${jy.bad ? '带挑战的一类，常意味要靠后天修为转化' : '偏吉的一类，是天生的一份福分'}。`, `Janma Yoga (birth yoga): <b>${jy.name}</b> (${yogaNat(jy)}) — the Sun-Moon combined energy at birth. ${jy.bad ? 'A more challenging type, often calling for inner work to transmute.' : 'An auspicious type — a measure of innate good fortune.'}`)}</p>`);
     const yogas = detectYogas(c);
     html += sec(L('🪷 瑜伽格局', '🪷 Yogas & Combinations'), yogas.length ? yogas.map(([t, d]) => `<div class="yoga"><b>${t}</b><p>${d}</p></div>`).join('') : L('<p class="muted">未检测到本页收录的主要格局（共检测象王/日水/月火/五大人物/王者/逆境/月亮孤独/落陷化解 8 类）。没有大格局不代表盘弱，行星落宫的稳定组合同样能成事。</p>', '<p class="muted">No major yoga from this page\'s set was detected (8 types checked: Gajakesari / Budhaditya / Chandra-Mangala / Pancha Mahapurusha / Raja / Vipareeta / Kemadruma / Neecha Bhanga). Lacking a big yoga doesn\'t mean a weak chart — steady combinations of planetary placements can achieve just as much.</p>'));
     html += sec(L('🏠 九曜落宫详解', '🏠 Nine Planets by House'), `<p class="muted-sm">${L('点击任意一条，看该星的完整介绍。', 'Tap any row to see that planet\'s full introduction.')}</p>` + V.PLANETS.map(p => {
