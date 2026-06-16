@@ -92,6 +92,11 @@ select{background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),
 .chart-tools{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
 .ctab{background:#fff;border:1px solid var(--border);color:var(--text2);border-radius:10px;padding:7px 16px;cursor:pointer;font-size:14px;font-family:inherit}
 .ctab.on{border-color:var(--brand);color:var(--brand);background:var(--brand-bg);font-weight:600}
+.varga-sel{background:var(--brand-bg);border:1px solid var(--brand-light);color:var(--brand);border-radius:10px;
+  padding:7px 30px 7px 14px;font-size:14px;font-family:inherit;font-weight:600;cursor:pointer;max-width:62%;
+  background-image:linear-gradient(45deg,transparent 50%,var(--brand) 50%),linear-gradient(135deg,var(--brand) 50%,transparent 50%);
+  background-position:calc(100% - 18px) 50%,calc(100% - 13px) 50%;background-size:5px 5px;background-repeat:no-repeat}
+.varga-sel:focus{outline:none;box-shadow:0 0 0 3px rgba(108,92,231,.12)}
 .chart-flex{display:grid;grid-template-columns:minmax(0,440px) 1fr;gap:22px;align-items:start}
 #chartBox{background:#fff;border:1px solid var(--border);border-radius:16px;padding:10px}
 .vchart{width:100%;height:auto;display:block}
@@ -420,8 +425,7 @@ footer p{margin-bottom:6px}
 
       <div class="card">
         <div class="chart-tools">
-          <button class="ctab on" data-div="D1" onclick="_setChart('D1',null)" data-en="D1 Rasi">D1 本命盘</button>
-          <button class="ctab" data-div="D9" onclick="_setChart('D9',null)" data-en="D9 Navamsa">D9 九分盘</button>
+          <select id="vargaSel" class="varga-sel" onchange="_setVarga(this.value)" aria-label="divisional chart"></select>
           <span style="flex:1"></span>
           <button class="ctab on" data-style="N" onclick="_setChart(null,'N')" data-en="North Indian">北印式</button>
           <button class="ctab" data-style="S" onclick="_setChart(null,'S')" data-en="South Indian">南印式</button>
@@ -1041,6 +1045,39 @@ return new kd(this.curr.time,a,b)};$jscomp.global.Object.defineProperties(H.prot
     return { idx, pada: Math.floor(frac * 4) + 1, frac };
   }
   function navamsaSign(lon) { return Math.floor(norm360(lon) / (10 / 3)) % 12; }
+
+  // 通用分盘 (Shodasvarga 16 法, BPHS/Parashara 规则). 返回该分盘里行星所落星座(0=白羊).
+  // 锚点: vargaSign(lon,9) === navamsaSign(lon) (D9 已被 SwissEph 校准, 测试断言).
+  function vargaSign(lon, D) {
+    lon = norm360(lon);
+    const s = Math.floor(lon / 30), deg = lon - s * 30;
+    const odd = s % 2 === 0;          // 白羊=第1宫=奇
+    const mod = s % 3;                // 0动象(白羊/巨蟹/天秤/摩羯) 1固象 2变象
+    const elem = s % 4;               // 0火 1土 2风 3水
+    const part = n => Math.floor(deg / (30 / n));
+    switch (D) {
+      case 1: return s;
+      case 2: { const h = deg < 15 ? 0 : 1; return odd ? (h === 0 ? 4 : 3) : (h === 0 ? 3 : 4); } // Hora 狮/巨
+      case 3: return (s + part(3) * 4) % 12;                 // Drekkana 1/5/9
+      case 4: return (s + part(4) * 3) % 12;                 // Chaturthamsa 1/4/7/10
+      case 7: return ((odd ? s : (s + 6) % 12) + part(7)) % 12;
+      case 9: return ([0, 9, 6, 3][elem] + part(9)) % 12;    // 火→白羊 土→摩羯 风→天秤 水→巨蟹
+      case 10: return ((odd ? s : (s + 8) % 12) + part(10)) % 12;
+      case 12: return (s + part(12)) % 12;
+      case 16: return ([0, 4, 8][mod] + part(16)) % 12;      // 动→白羊 固→狮子 变→射手
+      case 20: return ([0, 8, 4][mod] + part(20)) % 12;      // 动→白羊 固→射手 变→狮子
+      case 24: return ((odd ? 4 : 3) + part(24)) % 12;       // 奇→狮子 偶→巨蟹
+      case 27: return ([0, 3, 6, 9][elem] + part(27)) % 12;  // 火→白羊 土→巨蟹 风→天秤 水→摩羯
+      case 30: {                                             // Trimsamsa 不等分, 映射五行星本座(无日月)
+        if (odd) return deg < 5 ? 0 : deg < 10 ? 10 : deg < 18 ? 8 : deg < 25 ? 2 : 6;   // 火/土/木/水/金 → 白羊/水瓶/射手/双子/天秤
+        return deg < 5 ? 1 : deg < 12 ? 5 : deg < 20 ? 11 : deg < 25 ? 9 : 7;            // 金/水/木/土/火 → 金牛/处女/双鱼/摩羯/天蝎
+      }
+      case 40: return ((odd ? 0 : 6) + part(40)) % 12;       // 奇→白羊 偶→天秤
+      case 45: return ([0, 4, 8][mod] + part(45)) % 12;      // 动→白羊 固→狮子 变→射手
+      case 60: return (s + Math.floor(deg * 2)) % 12;        // Shashtiamsa
+      default: return s;
+    }
+  }
   function fmtDeg(lon) {
     const inSign = norm360(lon) % 30;
     const d = Math.floor(inSign), m = Math.floor((inSign - d) * 60);
@@ -1398,7 +1435,7 @@ return new kd(this.curr.time,a,b)};$jscomp.global.Object.defineProperties(H.prot
     };
   }
 
-  return { compute, transitsNow, daily, publicPanchang, ashtakoota, manglik, extraKutas, overlayHouses, interAspects, d9Marriage, vashyaOf, ayanamsa, SIGNS, SIGNS_SA, NAKSHATRAS, PLANETS, PLANET_CN, PLANET_GLYPH, SIGN_LORD, DASHA_LORDS, DASHA_YEARS, norm360, signOf, nakOf, fmtDeg, YONI, YONI_CN, GANA, NADI, TARA_NAMES };
+  return { compute, transitsNow, daily, publicPanchang, ashtakoota, manglik, extraKutas, overlayHouses, interAspects, d9Marriage, vashyaOf, ayanamsa, vargaSign, navamsaSign, SIGNS, SIGNS_SA, NAKSHATRAS, PLANETS, PLANET_CN, PLANET_GLYPH, SIGN_LORD, DASHA_LORDS, DASHA_YEARS, norm360, signOf, nakOf, fmtDeg, YONI, YONI_CN, GANA, NADI, TARA_NAMES };
 }));
 
 </script>
@@ -2332,7 +2369,26 @@ const WORLD_CITIES=[["Shanghai","CN",31.2222,121.4581,0],["Beijing","CN",39.9075
   const pname = n => n === '未命名' ? L('未命名', 'Unnamed') : n; // 档案名显示(哨兵键翻译)
   const selTz = {}, selCity = {}; // 城市搜索选中的 IANA 时区 / 显示名(按 prefix '' 与 'b')
   let CHART = null;
-  let chartDiv = 'D1', chartStyle = 'N';
+  let chartV = 1, chartStyle = 'N';
+  // 16 分盘 Shodasvarga: [D编号, 中文名, 英文名, 中文含义, 英文含义]
+  const VARGA_DEF = [
+    [1, '本命盘 Rasi', 'Rasi', '身体 · 全局人生', 'Body & whole life'],
+    [2, '财帛 Hora', 'Hora', '财富 · 积累', 'Wealth & resources'],
+    [3, '兄弟 Drekkana', 'Drekkana', '兄弟姐妹 · 勇气', 'Siblings & courage'],
+    [4, '田宅 Chaturthamsa', 'Chaturthamsa', '不动产 · 内心安定', 'Property & inner peace'],
+    [7, '子嗣 Saptamsa', 'Saptamsa', '子女 · 生育', 'Children & progeny'],
+    [9, '九分 Navamsa', 'Navamsa', '婚姻 · 后运 · 法', 'Marriage, dharma & later life'],
+    [10, '事业 Dasamsa', 'Dasamsa', '事业 · 成就 · 社会地位', 'Career, achievement & status'],
+    [12, '父母 Dwadasamsa', 'Dwadasamsa', '父母 · 祖荫', 'Parents & ancestry'],
+    [16, '车舆 Shodasamsa', 'Shodasamsa', '车房 · 享受 · 顺逆', 'Vehicles, comforts & happiness'],
+    [20, '灵修 Vimsamsa', 'Vimsamsa', '修行 · 信仰', 'Spirituality & worship'],
+    [24, '学业 Siddhamsa', 'Siddhamsa', '学问 · 教育', 'Learning & education'],
+    [27, '强弱 Bhamsa', 'Bhamsa', '先天体能 · 强弱', 'Innate strengths & vitality'],
+    [30, '灾厄 Trimsamsa', 'Trimsamsa', '灾厄 · 性情 · 隐患', 'Misfortunes & character'],
+    [40, '母系 Khavedamsa', 'Khavedamsa', '母系吉凶 · 杂效', 'Maternal legacy & effects'],
+    [45, '父系 Akshavedamsa', 'Akshavedamsa', '父系 · 品格', 'Paternal legacy & conduct'],
+    [60, '命运 Shashtiamsa', 'Shashtiamsa', '总运 · 前世业力(最细)', 'Overall karma & past life (finest)'],
+  ];
 
   /* ---------- 时区: 城市 IANA 时区 + 出生日期 → 真实 UTC 偏移(含夏令时) ---------- */
   function tzOffsetForWall(y, mo, d, h, mi, tzName) {
@@ -2691,25 +2747,33 @@ const WORLD_CITIES=[["Shanghai","CN",31.2222,121.4581,0],["Beijing","CN",39.9075
   }
 
   /* ---------- 盘面 ---------- */
-  function planetsBySign(div) {
+  function planetsBySign(D) {
     const c = CHART, map = Array.from({ length: 12 }, () => []);
-    const lagSign = div === 'D9' ? c.lagna.navamsa : c.lagna.sign;
+    const lagSign = D === 1 ? c.lagna.sign : V.vargaSign(c.lagna.lon, D);
     for (const p of V.PLANETS) {
       const pl = c.planets[p];
-      const s = div === 'D9' ? pl.navamsa : pl.sign;
-      map[s].push(PCHAR[p] + (pl.retro && div === 'D1' ? '⁻' : ''));
+      const s = D === 1 ? pl.sign : V.vargaSign(pl.lon, D);
+      map[s].push(PCHAR[p] + (pl.retro && D === 1 ? '⁻' : ''));
     }
     return { map, lagSign };
   }
-
+  function fillVargaSel() {
+    const sel = $('vargaSel');
+    if (!sel) return;
+    sel.innerHTML = VARGA_DEF.map(v => `<option value="${v[0]}">D${v[0]} ${_en() ? v[2] : v[1]}</option>`).join('');
+    sel.value = chartV;
+  }
   function renderChart() {
-    const { map, lagSign } = planetsBySign(chartDiv);
+    const { map, lagSign } = planetsBySign(chartV);
     $('chartBox').innerHTML = chartStyle === 'N' ? northChart(map, lagSign) : southChart(map, lagSign);
-    $('chartCap').textContent = (chartDiv === 'D1' ? L('D1 本命盘 Rasi', 'D1 Rasi (birth chart)') : L('D9 九分盘 Navamsa（婚姻与后运）', 'D9 Navamsa (marriage & later life)')) + ' · ' + (chartStyle === 'N' ? L('北印度式', 'North Indian') : L('南印度式', 'South Indian')) + ' · ' + L('点任意宫位看介绍', 'tap any house for details');
-    document.querySelectorAll('[data-div]').forEach(b => b.classList.toggle('on', b.dataset.div === chartDiv));
+    const def = VARGA_DEF.find(v => v[0] === chartV) || VARGA_DEF[0];
+    const nm = _en() ? def[2] : def[1], sig = _en() ? def[4] : def[3];
+    $('chartCap').textContent = `D${chartV} ${nm} · ${sig} · ` + (chartStyle === 'N' ? L('北印度式', 'North Indian') : L('南印度式', 'South Indian')) + ' · ' + L('点任意宫位看介绍', 'tap any house for details');
+    fillVargaSel();
     document.querySelectorAll('[data-style]').forEach(b => b.classList.toggle('on', b.dataset.style === chartStyle));
   }
-  window._setChart = (div, style) => { if (div) chartDiv = div; if (style) chartStyle = style; renderChart(); };
+  window._setVarga = D => { chartV = +D; renderChart(); };
+  window._setChart = (div, style) => { if (style) chartStyle = style; renderChart(); };
 
   function northChart(map, lagSign) {
     const S = 400;
