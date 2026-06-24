@@ -3,29 +3,37 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#eceae5">
+<meta name="theme-color" content="#e6e1d6">
 <title data-en="Vedic Astrology · Online Chart / Synastry / Daily Fortune">印占星盘 · Vedic Astrology 在线排盘 / 合盘 / 运势</title>
 <meta name="description" content="免费印度占星在线工具：Lahiri 恒星黄道 D1/D9 星盘、27 星宿、Vimshottari 大运、三十六分合盘、个人运势、今日运势，全中文解读，手机电脑均可用。">
 <style>
 :root{
-  --brand:#7c8b6f; --brand-light:#97a487; --brand-bg:#e8ede1; --green-d:#5f6e54;
-  --text:#3a3a38; --text2:#76726b; --muted:#a8a299;
-  --bg:#eceae5; --card:#f5f3ee; --card2:#fbfaf6; --border:#dedacf; --ink:#3a3a38;
-  --good:#7c8b6f; --good-bg:#e8ede1; --bad:#b5817a; --bad-bg:#f1e6e3;
-  --warm:#b08d5c; --warm-bg:#f1e9dc; --gold:#bfa06a; --gold-bg:#f1ead8;
+  --brand:#6c7d5b; --brand-light:#889a76; --brand-bg:#dde6d0; --green-d:#525f44;
+  --text:#33332f; --text2:#6a665d; --muted:#988f80;
+  --bg:#e6e1d6; --card:#f0ede4; --card2:#f9f6ee; --border:#d2cbba; --ink:#33332f;
+  --good:#6c7d5b; --good-bg:#dde6d0; --bad:#ab7167; --bad-bg:#eedcd6;
+  --warm:#a37b46; --warm-bg:#eee2cf; --gold:#b3914f; --gold-bg:#eee2c9;
+  /* 精修: 衬线 display / 染色聚焦环 / 三档 elevation 阴影 (同色相微染, 越浮越亮) */
+  --serif:'Georgia','Songti SC','Noto Serif SC','STSong',serif;
+  --ring:rgba(124,139,111,.20);
+  --sh-1:0 1px 2px rgba(74,70,65,.04);
+  --sh-2:0 1px 2px rgba(74,70,65,.04),0 6px 18px rgba(74,70,65,.05);
+  --sh-3:0 2px 6px rgba(74,70,65,.05),0 16px 40px rgba(74,70,65,.07);
 }
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:var(--bg);color:var(--text);font-family:'Inter','Noto Sans SC',-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;line-height:1.7}
+body{background:var(--bg);color:var(--text);font-family:'Inter','Noto Sans SC',-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;line-height:1.7;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 .wrap{max-width:960px;margin:0 auto;padding:0 16px 60px}
 a{color:var(--brand)}
 
 /* header */
-header{text-align:center;padding:46px 0 6px}
-.om{width:64px;height:64px;margin:0 auto;border-radius:50%;background:var(--brand);
-  color:#fff;font-size:34px;line-height:64px;box-shadow:0 8px 24px rgba(60,55,50,.08)}
-h1{font-size:30px;letter-spacing:1px;margin:14px 0 6px}
-h1 em{font-style:normal;background:var(--brand);-webkit-background-clip:text;background-clip:text;color:transparent}
-.subtitle{color:var(--text2);font-size:14.5px;max-width:580px;margin:0 auto}
+header{text-align:center;padding:48px 0 8px}
+.om{width:66px;height:66px;margin:0 auto;border-radius:50%;background:radial-gradient(120% 120% at 50% 28%,#8a9980,var(--brand));
+  color:#fff;font-size:34px;line-height:66px;box-shadow:0 10px 26px rgba(74,70,65,.14),0 0 0 1px rgba(255,255,255,.45) inset;
+  position:relative}
+.om::after{content:"";position:absolute;inset:-6px;border-radius:50%;border:1px solid var(--gold);opacity:.55}
+h1{font-family:var(--serif);font-size:32px;font-weight:600;letter-spacing:.5px;margin:18px 0 8px}
+h1 em{font-style:italic;font-weight:600;color:var(--brand);background:none;-webkit-text-fill-color:currentColor}
+.subtitle{color:var(--text2);font-size:14.5px;max-width:560px;margin:0 auto;line-height:1.75}
 .lang-toggle{position:absolute;top:16px;right:16px;background:var(--card2);border:1px solid var(--border);color:var(--brand);
   border-radius:999px;padding:5px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;
   box-shadow:0 2px 8px rgba(60,55,50,.08);z-index:40}
@@ -41,15 +49,15 @@ h1 em{font-style:normal;background:var(--brand);-webkit-background-clip:text;bac
 .guide .step{background:var(--brand-bg);border-radius:12px;padding:10px 14px 6px;margin-bottom:8px}
 
 /* form */
-.card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:24px;margin-top:22px}
-#formCard{background:var(--card2);box-shadow:0 1px 3px rgba(60,55,50,.05),0 12px 32px rgba(60,55,50,.08)}
+.card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:24px;margin-top:22px;box-shadow:var(--sh-1)}
+#formCard{background:var(--card2);box-shadow:var(--sh-3)}
 .fgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .fitem label{display:block;font-size:13px;color:var(--text2);margin-bottom:5px}
 input[type=text],input[type=date],input[type=time],input[type=number],select{
   width:100%;background:var(--card2);border:1px solid var(--border);border-radius:12px;color:var(--text);
   padding:10px 12px;font-size:15px;outline:none;-webkit-appearance:none;appearance:none}
 .card input[type=text],.card input[type=date],.card input[type=time],.card input[type=number],.card select{background:var(--card2)}
-input:focus,select:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(60,55,50,.08)}
+input:focus,select:focus{border-color:var(--brand);box-shadow:0 0 0 3px var(--ring)}
 select{background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);
   background-position:calc(100% - 18px) 50%,calc(100% - 13px) 50%;background-size:5px 5px;background-repeat:no-repeat}
 .gsel{display:flex;gap:10px}
@@ -69,14 +77,16 @@ select{background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),
 .city-opt:hover,.city-opt.sel{background:var(--brand-bg)}
 .city-opt .co-cc{color:var(--muted);font-size:12px;flex-shrink:0}
 .city-empty{padding:10px 14px;color:var(--muted);font-size:13px}
-.btn-main{width:100%;margin-top:18px;background:var(--brand);color:#fff;font-weight:700;
-  font-size:17px;border:none;border-radius:14px;padding:14px;cursor:pointer;letter-spacing:6px;box-shadow:0 6px 18px rgba(60,55,50,.08);
-  transition:transform .15s,box-shadow .15s}
+.btn-main{width:100%;margin-top:18px;background:linear-gradient(180deg,#879578,var(--brand));color:#fff;font-weight:700;
+  font-size:17px;border:none;border-radius:14px;padding:14px;cursor:pointer;letter-spacing:6px;
+  box-shadow:0 6px 18px rgba(124,139,111,.28),0 1px 0 rgba(255,255,255,.25) inset;
+  transition:transform .15s,box-shadow .15s,filter .15s}
+.btn-main:hover{filter:brightness(1.04);box-shadow:0 10px 24px rgba(124,139,111,.34),0 1px 0 rgba(255,255,255,.25) inset}
 .btn-main:active{transform:scale(.985)}
 .ferr{color:var(--bad);font-size:13.5px;margin-top:10px;min-height:1em}
 
 /* overview */
-#overview{background:#eef0e8;border-color:var(--border)}
+#overview{background:#e5ecd9;border-color:var(--border)}
 .ov-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:14px}
 .ov-item{background:var(--card2);border:1px solid var(--border);border-radius:14px;padding:10px 12px;text-align:left;cursor:pointer;
   font-family:inherit;transition:transform .15s,box-shadow .15s}
@@ -89,14 +99,18 @@ select{background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),
   font-size:10.5px;text-align:center;font-weight:700;vertical-align:1px}
 
 /* tabs */
-.tabbar{position:sticky;top:0;z-index:50;display:flex;gap:6px;justify-content:safe center;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);
+.tabbar{position:sticky;top:0;z-index:50;display:flex;gap:6px;justify-content:safe center;background:rgba(240,237,228,.85);backdrop-filter:blur(12px) saturate(1.1);
   padding:10px 0;margin-top:20px;border-bottom:1px solid var(--border);overflow-x:auto;-webkit-overflow-scrolling:touch}
 .tabbtn{flex-shrink:0;display:inline-flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--border);color:var(--text2);border-radius:999px;
   padding:8px 18px;cursor:pointer;font-size:14.5px;font-family:inherit;transition:all .15s}
-.tabbtn .ti{line-height:1}
+/* emoji 保留原色, 只极轻去饱和避免刺眼; 不灰 */
+.tabbtn .ti{line-height:1;filter:saturate(.88) opacity(.95);transition:filter .15s}
+.tabbtn:hover{border-color:var(--brand-light);color:var(--text)}
+.tabbtn:hover .ti{filter:saturate(1) opacity(1)}
 .tl-short{display:none}
 .tabbtn.on{background:var(--brand);border-color:transparent;color:#fff;font-weight:600;
-  box-shadow:0 4px 12px rgba(60,55,50,.08)}
+  box-shadow:0 6px 16px rgba(124,139,111,.30)}
+.tabbtn.on .ti{filter:saturate(1) opacity(1)}
 
 /* chart */
 .chart-tools{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
@@ -123,7 +137,7 @@ select{background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),
 /* ashtakavarga 八分力 */
 .av-row{display:flex;align-items:center;gap:10px;margin-bottom:6px}
 .av-h{flex:0 0 auto;width:120px;color:var(--text2);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.av-track{flex:1;height:14px;background:#e6e4dd;border-radius:7px;overflow:hidden}
+.av-track{flex:1;height:14px;background:#dcd6c7;border-radius:7px;overflow:hidden}
 .av-fill{display:block;height:100%;border-radius:7px;transition:width .3s}
 .av-n{flex:0 0 auto;width:26px;text-align:right;font-weight:700;font-size:13px;color:var(--text)}
 .sb-tag{flex:0 0 auto;width:36px;text-align:right;font-size:12px;font-weight:700}
@@ -141,7 +155,7 @@ td{padding:9px 10px;border-bottom:1px solid var(--border)}
 tbody tr{cursor:pointer}
 tbody tr:hover td{background:var(--brand-bg)}
 .td-nak{font-size:12.5px;color:var(--text2)}
-.tag{display:inline-block;font-size:11.5px;border-radius:6px;padding:1.5px 8px;margin-right:4px;color:var(--text2);background:#e6e4dd}
+.tag{display:inline-block;font-size:11.5px;border-radius:6px;padding:1.5px 8px;margin-right:4px;color:var(--text2);background:#dcd6c7}
 .tag-good{color:var(--good);background:var(--good-bg)}
 .tag-bad{color:var(--bad);background:var(--bad-bg)}
 
@@ -282,7 +296,7 @@ tbody tr:hover td{background:var(--brand-bg)}
 .prof-empty{text-align:center;color:var(--muted);font-size:14px;padding:24px 0}
 
 /* 今日天时公共卡 */
-.sky-card{background:#eef0e8;border-color:var(--border);padding:18px 20px}
+.sky-card{background:#e5ecd9;border-color:var(--border);padding:18px 20px}
 .sky-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .sky-date{font-size:15px;font-weight:700}
 .sky-sub{font-size:12px;color:var(--muted)}
@@ -308,7 +322,7 @@ tbody tr:hover td{background:var(--brand-bg)}
 @media (max-width:560px){.wday{padding:6px 2px}.wd-d{font-size:9.5px}.wd-s{font-size:10px;letter-spacing:-1px}.wd-t{font-size:9.5px}}
 
 /* 梵歌指引 */
-.gita-card{background:#f1ead8;border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:10px}
+.gita-card{background:#ecdfc4;border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:10px}
 .gita-tag{font-size:11.5px;color:#b07a35;letter-spacing:1px}
 .gita-verse{font-size:15px;font-weight:600;color:#6b4a1e;margin:6px 0;line-height:1.6}
 .gita-ref{font-size:11.5px;color:#b07a35}
@@ -341,7 +355,7 @@ tbody tr:hover td{background:var(--brand-bg)}
 .mood-score em{font-style:normal;font-size:14px;font-weight:500;color:var(--muted)}
 .mood-dims{flex:1;display:flex;gap:14px;justify-content:space-around;min-width:220px}
 .mdim{text-align:center}
-.mdim-bar{width:10px;height:64px;background:#e6e4dd;border-radius:6px;margin:0 auto 4px;position:relative;overflow:hidden}
+.mdim-bar{width:10px;height:64px;background:#dcd6c7;border-radius:6px;margin:0 auto 4px;position:relative;overflow:hidden}
 .mdim-bar div{position:absolute;bottom:0;left:0;right:0;border-radius:6px}
 .mdim-v{font-size:14px;font-weight:700}
 .mdim-k{font-size:11.5px;color:var(--muted)}
@@ -380,7 +394,23 @@ footer p{margin-bottom:6px}
   .tabbtn .tl{font-size:9.5px;letter-spacing:-.3px;white-space:nowrap}
   .tl-full{display:none}.tl-short{display:inline}
   .tabbtn.on{background:var(--brand-bg);color:var(--brand);box-shadow:none;font-weight:600}
+  /* 手机底栏图标也保留原色 */
+  .tabbtn .ti{filter:saturate(.9) opacity(.92)}
+  .tabbtn.on .ti{filter:saturate(1) opacity(1)}
 }
+
+/* === 精修覆盖层: 衬线 display 标题, 编辑感 === */
+#ovTitle,.modal h3,.rsec h3,.f-card h4,.kuta-head,.nc-title,.guide h4,#aiBox h3,#matchCard h3{font-family:var(--serif)}
+#ovTitle{font-weight:600;letter-spacing:.3px}
+.modal h3{font-weight:600}
+.syn-h{font-family:var(--serif);font-weight:600}
+.rsec h3{font-weight:600;letter-spacing:.2px}
+/* 卡片悬浮微抬升(可点卡片更有质感) */
+.kuta,.ph-item,.dasha{transition:box-shadow .15s,border-color .15s,transform .15s}
+.kuta:hover{box-shadow:var(--sh-2);border-color:var(--brand-light)}
+/* 英雄卡阴影统一到暖色相 */
+.daily-hero,.match-hero{box-shadow:0 12px 30px rgba(124,139,111,.20)}
+.match-hero{box-shadow:0 12px 30px rgba(176,141,92,.22)}
 </style>
 </head>
 <body>
